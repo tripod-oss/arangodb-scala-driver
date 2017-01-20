@@ -7,7 +7,6 @@ import akka.routing._
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
-import io.tripod.oss.arangodb.driver.EndpointClientWorker.GetEndPoint
 import io.tripod.oss.arangodb.driver.RequestRouter.{
   AddEndpoint,
   GetEndPoints,
@@ -45,6 +44,8 @@ class ArangoDriver(baseConfig: Config) {
 
   def getEndPoints: Future[List[String]] =
     (router ? GetEndPoints).mapTo[List[String]]
+
+  def close = system.terminate()
 }
 
 object ArangoDriver {

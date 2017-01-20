@@ -25,7 +25,6 @@ class RequestRouter extends Actor {
   val router = Router(RoundRobinRoutingLogic())
 
   def receive = {
-    case work => router.route(work, sender())
     case AddEndpoint(endpoint: String) =>
       if (endpointWorkers.contains(endpoint)) {
         //End point already declared
@@ -48,5 +47,6 @@ class RequestRouter extends Actor {
             self ! AddEndpoint(endpoint)
           }
       }
+    //case work => println(work) //router.route(work, sender())
   }
 }

@@ -10,7 +10,7 @@ object Basictest extends App {
 
   val driver = ArangoDriver()
   driver.addEndPoint("http://localhost:5439/")
-  driver.getEndPoints.onComplete(_ => println)
+  driver.getEndPoints.onComplete(println)
   driver.removeEndPoint("")
-  Thread.sleep(500)
+  driver.close
 }
