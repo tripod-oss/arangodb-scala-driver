@@ -1,7 +1,9 @@
 package io.tripod.oss.arangodb.driver
 
-import akka.actor.{Actor, ActorRef, Terminated}
+import akka.actor.{Actor, ActorRef, Props, Terminated}
 import akka.routing.{AddRoutee, RoundRobinRoutingLogic, Router}
+import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import io.tripod.oss.arangodb.driver.RequestRouter.{
   AddEndpoint,
   GetEndPoints,
@@ -9,44 +11,55 @@ import io.tripod.oss.arangodb.driver.RequestRouter.{
 }
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 /**
   * Created by nicolas.jouanin on 20/01/17.
   */
 object RequestRouter {
+  def props(driverConfig: Config, userName: String, password: String) =
+    Props(new RequestRouter(driverConfig, userName, password))
   case class AddEndpoint(endpointRoot: String)
   case class RemoveEndpoint(endpointRoot: String)
   case object GetEndPoints
 }
 
-class RequestRouter extends Actor {
+class RequestRouter(driverConfig: Config, userName: String, password: String)
+    extends Actor
+    with LazyLogging {
   val endpointWorkers = new mutable.HashMap[String, ActorRef]
-  val router = Router(RoundRobinRoutingLogic())
+  var router = Router(RoundRobinRoutingLogic())
 
   def receive = {
     case AddEndpoint(endpoint: String) =>
       if (endpointWorkers.contains(endpoint)) {
-        //End point already declared
+        logger.warn(s"AddEndpoint: '$endpoint' already added")
       } else {
-        val workerRef = context.actorOf(EndpointClientWorker.props(endpoint))
+        val workerRef =
+          context.actorOf(
+            EndpointClientWorker
+              .props(endpoint, driverConfig, userName, password))
         endpointWorkers.put(endpoint, workerRef)
         context.watch(workerRef)
-        router.addRoutee(workerRef)
+        router = router.addRoutee(workerRef)
       }
     case RemoveEndpoint(endpoint: String) =>
-      endpointWorkers.get(endpoint).map(routee => router.removeRoutee(routee))
+      endpointWorkers
+        .get(endpoint)
+        .map(routee => router.removeRoutee(routee)) match {
+        case Some(r) ⇒ router = r
+        case None ⇒ logger.warn(s"Endpoint '$endpoint' removal failure")
+      }
       endpointWorkers.remove(endpoint)
     case GetEndPoints => sender() ! endpointWorkers.keySet.toList
     case Terminated(w) =>
       endpointWorkers.foreach {
         case (endpoint, worker) =>
           if (w.equals(worker)) {
-            router.removeRoutee(w)
+            router = router.removeRoutee(w)
             endpointWorkers.remove(endpoint)
             self ! AddEndpoint(endpoint)
           }
       }
-    //case work => println(work) //router.route(work, sender())
+    case work: WorkMessage => router.route(work, sender())
   }
 }
