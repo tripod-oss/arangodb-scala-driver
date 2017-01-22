@@ -2,9 +2,9 @@ package io.tripod.oss.arangodb.driver
 
 trait ApiResponse
 
-case class Error(errorCode: Int = 0,
-                 errorMessage: String = "",
-                 errorBody: String = "")
+case class ApiError(errorCode: Int = 0,
+                    errorMessage: String = "",
+                    errorBody: String = "")
 case class ServerVersionResponse(server: String,
                                  version: String,
                                  license: String,

@@ -16,6 +16,7 @@ object Basictest extends App {
   Thread.sleep(500)
   driver.getServerVersion(true).map(println)
   driver.currentDatabase.map(println)
+  driver.userDatabase.map(println)
   Thread.sleep(10000)
   driver.close
 }

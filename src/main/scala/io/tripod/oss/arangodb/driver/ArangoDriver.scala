@@ -56,14 +56,15 @@ class ArangoDriver(baseConfig: Config,
   def close = system.terminate()
 
   def getServerVersion(
-      withDetails: Boolean = false): Future[Either[Error, ApiResponse]] = {
+      withDetails: Boolean = false): Future[Either[ApiError, ApiResponse]] = {
     completeWithPromise[ServerVersionResponse](promise ⇒
       router ! GetServerVersion(withDetails, promise))
   }
 
   protected def completeWithPromise[T <: ApiResponse](
-      request: Promise[Either[Error, T]] ⇒ Unit): Future[Either[Error, T]] = {
-    val responsePromise = Promise[Either[Error, T]]
+      request: Promise[Either[ApiError, T]] ⇒ Unit)
+    : Future[Either[ApiError, T]] = {
+    val responsePromise = Promise[Either[ApiError, T]]
     request(responsePromise)
     responsePromise.future
   }
