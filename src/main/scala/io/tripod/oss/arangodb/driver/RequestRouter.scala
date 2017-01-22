@@ -60,6 +60,6 @@ class RequestRouter(driverConfig: Config, userName: String, password: String)
             self ! AddEndpoint(endpoint)
           }
       }
-    case work: WorkMessage => router.route(work, sender())
+    case work: WorkMessage[_] => router.route(work, sender())
   }
 }

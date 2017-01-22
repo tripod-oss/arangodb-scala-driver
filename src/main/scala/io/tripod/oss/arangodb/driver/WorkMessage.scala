@@ -1,12 +1,18 @@
 package io.tripod.oss.arangodb.driver
 
+import io.tripod.oss.arangodb.driver.database.CurrentDatabaseResponse
+
 import scala.concurrent.Promise
 
-private[driver] sealed trait WorkMessage {
-  def resultPromise: Promise[Either[Error, ApiResponse]]
+sealed trait WorkMessage[T] {
+  def resultPromise: Promise[Either[Error, T]]
 }
 
-private[driver] case class GetServerVersion(
+case class GetServerVersion(
     withDetails: Boolean,
-    resultPromise: Promise[Either[Error, ApiResponse]])
-    extends WorkMessage
+    resultPromise: Promise[Either[Error, ServerVersionResponse]])
+    extends WorkMessage[ServerVersionResponse]
+
+case class CurrentDatabase(
+    resultPromise: Promise[Either[Error, CurrentDatabaseResponse]])
+    extends WorkMessage[CurrentDatabaseResponse]

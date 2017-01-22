@@ -40,7 +40,7 @@ class ArangoDriver(baseConfig: Config,
   implicit val ec = system.dispatcher
   implicit val timeout = Timeout(5 seconds)
 
-  private val router =
+  protected val router =
     system.actorOf(Props(new RequestRouter(config, _userName, _password)),
                    "requestRouter")
 
@@ -57,8 +57,14 @@ class ArangoDriver(baseConfig: Config,
 
   def getServerVersion(
       withDetails: Boolean = false): Future[Either[Error, ApiResponse]] = {
-    val responsePromise = Promise[Either[Error, ApiResponse]]
-    router ! GetServerVersion(withDetails, responsePromise)
+    completeWithPromise[ServerVersionResponse](promise ⇒
+      router ! GetServerVersion(withDetails, promise))
+  }
+
+  protected def completeWithPromise[T <: ApiResponse](
+      request: Promise[Either[Error, T]] ⇒ Unit): Future[Either[Error, T]] = {
+    val responsePromise = Promise[Either[Error, T]]
+    request(responsePromise)
     responsePromise.future
   }
 }

@@ -27,6 +27,7 @@ import io.tripod.oss.arangodb.driver.EndpointClientWorker.{
   Enqueue
 }
 import io.circe.generic.auto._
+import io.tripod.oss.arangodb.driver.database.DatabaseWorkerBehaviour
 
 object EndpointClientWorker {
   def props(endPointRoot: String,
@@ -36,8 +37,8 @@ object EndpointClientWorker {
     Props(
       new EndpointClientWorker(endPointRoot, driverConfig, userName, password))
   case class Authenticated(token: String)
-  case class Enqueue(request: HttpRequest,
-                     promise: Promise[Either[Error, ApiResponse]])
+  case class Enqueue[T <: ApiResponse](request: HttpRequest,
+                                       promise: Promise[Either[Error, T]])
 }
 
 class EndpointClientWorker(endPointRoot: String,
@@ -46,6 +47,7 @@ class EndpointClientWorker(endPointRoot: String,
                            password: String)
     extends Actor
     with Stash
+    with DatabaseWorkerBehaviour
     with LazyLogging {
 
   case class AuthRequest(username: String, password: String)
@@ -70,7 +72,7 @@ class EndpointClientWorker(endPointRoot: String,
   private var jwtToken: Option[String] = None
 
   def receive = {
-    case e: WorkMessage if jwtToken.isEmpty ⇒
+    case e: WorkMessage[_] if jwtToken.isEmpty ⇒
       stash()
       authenticate.andThen {
         case Success(authResponse) ⇒
@@ -92,8 +94,12 @@ class EndpointClientWorker(endPointRoot: String,
   }
 
   def authenticatedBehaviour: Receive = {
+    databaseWorkerBehaviour orElse defaultBehaviour
+  }
+  def defaultBehaviour: Receive = {
     case GetServerVersion(withDetails, promise) =>
-      self ! Enqueue(buildHttpRequest(s"/_api/version?details=$withDetails"),
+      self ! Enqueue(buildHttpRequest(HttpMethods.GET,
+                                      s"/_api/version?details=$withDetails"),
                      promise)
     case Enqueue(request, promise) ⇒
       logger.debug(s"--(request)-> $request")
@@ -143,8 +149,8 @@ class EndpointClientWorker(endPointRoot: String,
     }
   }
 
-  private def buildHttpRequest(uri: String): HttpRequest = {
-    val request = HttpRequest(GET, s"$endPointRoot$uri")
+  def buildHttpRequest(method: HttpMethod, uri: String): HttpRequest = {
+    val request = HttpRequest(method, s"$endPointRoot$uri")
     if (jwtToken.isDefined)
       request.withHeaders(
         List(Authorization(GenericHttpCredentials("bearer", jwtToken.get))))
