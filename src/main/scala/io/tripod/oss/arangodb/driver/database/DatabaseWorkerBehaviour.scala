@@ -28,22 +28,4 @@ trait DatabaseWorkerBehaviour { this: EndpointClientWorker ⇒
                                     "/_api/database/user",
                                     promise)
   }
-
-  def enqueue[R <: ApiResponse](method: HttpMethod,
-                                uri: String,
-                                promise: Promise[Either[ApiError, R]])(
-      implicit um: Unmarshaller[HttpEntity, R]) = {
-    self ! Enqueue(
-      buildHttpRequest(HttpMethods.GET, uri),
-      RequestContext[R](
-        promise
-          .asInstanceOf[Promise[Either[ApiError, R]]],
-        entity ⇒
-          Unmarshal(entity)
-            .to[R]
-            .map(result => Right(result))
-      )
-    )
-
-  }
 }

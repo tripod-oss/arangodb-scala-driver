@@ -53,6 +53,7 @@ class EndpointClientWorker(endPointRoot: String,
     with Stash
     with DatabaseWorkerBehaviour
     with LazyLogging {
+  import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
   case class AuthRequest(username: String, password: String)
 
@@ -62,9 +63,8 @@ class EndpointClientWorker(endPointRoot: String,
   implicit val system = context.system
 
   private val httpPool =
-    Http(context.system)
-      .superPool[RequestContext[_]](
-        settings = ConnectionPoolSettings(driverConfig))
+    Http(context.system).superPool[RequestContext[_]](
+      settings = ConnectionPoolSettings(driverConfig))
 
   private val httpRequestQueue =
     Source
@@ -103,18 +103,9 @@ class EndpointClientWorker(endPointRoot: String,
 
   def defaultBehaviour: Receive = {
     case GetServerVersion(withDetails, promise) =>
-      import de.heikoseeberger.akkahttpcirce.CirceSupport._
-      self ! Enqueue(
-        buildHttpRequest(HttpMethods.GET,
-                         s"/_api/version?details=$withDetails"),
-        RequestContext[ServerVersionResponse](
-          promise
-            .asInstanceOf[Promise[Either[ApiError, ServerVersionResponse]]],
-          entity ⇒
-            Unmarshal(entity)
-              .to[ServerVersionResponse]
-              .map(result => Right(result)))
-      )
+      enqueue[ServerVersionResponse](HttpMethods.GET,
+                                     s"/_api/version?details=$withDetails",
+                                     promise)
     case Enqueue(request, context) ⇒
       logger.debug(s"--(request)-> $request")
       httpRequestQueue.offer((request, context))
@@ -132,12 +123,24 @@ class EndpointClientWorker(endPointRoot: String,
       entity ← Marshal(AuthRequest(userName, password)).to[RequestEntity]
       request ← Http().singleRequest(
         HttpRequest(POST, s"$endPointRoot/_open/auth", entity = entity))
-      response ← toApiResponse(request,
-                               entity ⇒
-                                 Unmarshal(entity)
-                                   .to[AuthResponse]
-                                   .map(result => Right(result)))
+      response ← toApiResponse(
+        request,
+        entity ⇒
+          Unmarshal(entity).to[AuthResponse].map(result => Right(result)))
     } yield response
+  }
+
+  def enqueue[R <: ApiResponse](method: HttpMethod,
+                                uri: String,
+                                promise: Promise[Either[ApiError, R]])(
+      implicit um: Unmarshaller[HttpEntity, R]) = {
+    self ! Enqueue(
+      buildHttpRequest(HttpMethods.GET, uri),
+      RequestContext[R](
+        promise.asInstanceOf[Promise[Either[ApiError, R]]],
+        entity ⇒ Unmarshal(entity).to[R].map(result => Right(result))
+      )
+    )
   }
 
   private def toApiResponse[T <: ApiResponse](
@@ -156,15 +159,13 @@ class EndpointClientWorker(endPointRoot: String,
           Left(
             ApiError(httpResponse.status.intValue, errorMessage, errorBody)))
     } else {
-      parser(httpResponse.entity)
-        .recover {
-          case f: DecodingFailure ⇒
-            val errorBody = Await
-              .result(Unmarshal(httpResponse.entity).to[String], 30 seconds)
-              .asInstanceOf[String]
-            Left(
-              ApiError(httpResponse.status.intValue, f.getMessage, errorBody))
-        }
+      parser(httpResponse.entity).recover {
+        case f: DecodingFailure ⇒
+          val errorBody = Await
+            .result(Unmarshal(httpResponse.entity).to[String], 30 seconds)
+            .asInstanceOf[String]
+          Left(ApiError(httpResponse.status.intValue, f.getMessage, errorBody))
+      }
     }
   }
 
