@@ -18,5 +18,5 @@ case class CurrentDatabaseResponse(result: CurrentDatabaseResponseResult,
                                    code: Int)
     extends DatabaseApiResponse[CurrentDatabaseResponseResult]
 
-case class UserDatabaseResponse(result: Seq[String], error: Boolean, code: Int)
+case class DatabaseListResponse(result: Seq[String], error: Boolean, code: Int)
     extends DatabaseApiResponse[Seq[String]]

@@ -24,8 +24,10 @@ trait DatabaseWorkerBehaviour { this: EndpointClientWorker ⇒
                                        "/_api/database/current",
                                        promise)
     case UserDatabase(promise) ⇒
-      enqueue[UserDatabaseResponse](HttpMethods.GET,
+      enqueue[DatabaseListResponse](HttpMethods.GET,
                                     "/_api/database/user",
                                     promise)
+    case ListDatabase(promise) ⇒
+      enqueue[DatabaseListResponse](HttpMethods.GET, "/_api/database", promise)
   }
 }

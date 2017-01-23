@@ -10,9 +10,10 @@ import io.tripod.oss.arangodb.driver.database.DatabaseApi
 object Basictest extends App {
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val driver = new ArangoDriver(ConfigFactory.load(), Some("root"), Some(""))
-  with DatabaseApi
-  driver.addEndPoint("http://localhost:8529/")
+  val driver =
+    new ArangoDriver(ConfigFactory.load(), Some("root"), Some("root"))
+    with DatabaseApi
+  driver.addEndPoint("http://10.156.223.115:8529/")
   Thread.sleep(500)
   driver.getServerVersion(true).map(println)
   driver.currentDatabase.map(println)
