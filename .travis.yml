@@ -22,5 +22,5 @@ before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
 
-script: "sbt clean test"
+script: sbt ++$TRAVIS_SCALA_VERSION clean test
 #after_success: "sbt coverageReport coveralls"
