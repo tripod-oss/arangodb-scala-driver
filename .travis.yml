@@ -1,0 +1,26 @@
+sudo: false
+language: scala
+
+# These directories are cached to S3 at the end of the build
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
+
+before_install:
+- curl -s -L https://www.arangodb.com/repositories/travisCI/setup_arangodb_3.1.8.sh -o setup_arangodb.sh
+- chmod +x setup_arangodb.sh
+- ./setup_arangodb.sh
+
+scala:
+  - 2.12.1
+jdk:
+  - oraclejdk8
+
+before_cache:
+  # Tricks to avoid unnecessary cache updates
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.sbt -name "*.lock" -delete
+
+script: "sbt clean coverage test"
+#after_success: "sbt coverageReport coveralls"
