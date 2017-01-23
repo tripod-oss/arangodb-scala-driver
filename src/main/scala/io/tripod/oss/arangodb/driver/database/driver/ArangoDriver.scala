@@ -1,22 +1,22 @@
-package io.tripod.oss.arangodb.driver
+package io.tripod.oss.arangodb.driver.database.driver
 
 import akka.actor.{ActorSystem, Props}
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpMethod, HttpMethods}
 import akka.pattern.ask
-import akka.routing._
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
+import io.circe.{Decoder, Encoder}
 import io.tripod.oss.arangodb.driver.RequestRouter.{
   AddEndpoint,
   GetEndPoints,
   RemoveEndpoint
 }
+import io.tripod.oss.arangodb.driver._
+import io.tripod.oss.arangodb.driver.utils.FutureUtils._
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
-import io.tripod.oss.arangodb.driver.utils.FutureUtils._
+import io.circe._, io.circe.generic.semiauto._
 
 /**
   * Created by nicolas.jouanin on 20/01/17.
@@ -39,7 +39,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   implicit val ec = system.dispatcher
   implicit val timeout = Timeout(5 seconds)
 
-  protected val router =
+  private[database] val router =
     system.actorOf(Props(new RequestRouter(config, _userName, _password)),
                    "requestRouter")
 
@@ -59,13 +59,35 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
 
   def close = system.terminate()
 
-  def getServerVersion(withDetails: Boolean = false)
+  def getServerVersion(withDetails: Boolean = false)(
+      implicit dbContext: Option[DBContext] = None)
     : Future[Either[ApiError, ServerVersionResponse]] = {
-    completeWithPromise[ServerVersionResponse](promise ⇒
-      router ! GetServerVersion(withDetails, promise))
+    implicit val encoder = Some(deriveEncoder[ServerVersionRequest])
+    implicit val decoder = deriveDecoder[ServerVersionResponse]
+    callApi(dbContext,
+            HttpMethods.GET,
+            "/_api/version",
+            Some(ServerVersionRequest(withDetails)))
   }
 
-  def db(dbName: String) = new ArangoDatabase(dbName, router)
+  def callApi[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContext],
+                                                 apiMethod: HttpMethod,
+                                                 apiUri: String,
+                                                 request: Option[Q] = None)(
+      implicit requestEncoder: Option[Encoder[Q]],
+      responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
+    val responsePromise = Promise[Either[ApiError, R]]
+    router ! ApiCall(dbContext,
+                     apiMethod,
+                     apiUri,
+                     request,
+                     requestEncoder,
+                     responseDecoder,
+                     responsePromise)
+    responsePromise.future
+  }
+
+//  def db(dbContext: String) = new ArangoDatabase(dbContext, self)
 }
 
 object ArangoDriver {

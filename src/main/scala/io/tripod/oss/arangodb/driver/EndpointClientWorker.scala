@@ -17,7 +17,7 @@ import com.typesafe.config.Config
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.DecodingFailure
+import io.circe.{Decoder, DecodingFailure, Encoder}
 
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
@@ -27,7 +27,21 @@ import io.tripod.oss.arangodb.driver.EndpointClientWorker.{
   Enqueue
 }
 import io.circe.generic.auto._
-import io.tripod.oss.arangodb.driver.database.DatabaseWorkerBehaviour
+import io.tripod.oss.arangodb.driver.database.{
+  CreateDatabaseRequest,
+  DatabaseWorkerBehaviour
+}
+
+case class DBContext(name: String)
+
+case class ApiCall[Q <: ApiRequest, R <: ApiResponse](
+    dbContext: Option[DBContext],
+    apiMethod: HttpMethod,
+    apiUri: String,
+    request: Option[Q],
+    encoder: Option[Encoder[Q]],
+    decoder: Decoder[R],
+    responsePromise: Promise[Either[ApiError, R]])
 
 case class RequestContext[T <: ApiResponse](
     resultPromise: Promise[Either[ApiError, T]],
@@ -85,18 +99,18 @@ class EndpointClientWorker(endPointRoot: String,
   }
 
   def authenticationRequiredBehaviour: Receive = {
-    case e: WorkMessage[_] if jwtToken.isEmpty ⇒
+    case e: ApiCall[_, _] if jwtToken.isEmpty ⇒
       stash()
       authenticate.andThen {
         case Success(authResponse) ⇒
           authResponse.fold({ error =>
             logger.error(s"Authentication failed: $error")
-            e.resultPromise.complete(Success(Left(error)))
+            e.responsePromise.complete(Success(Left(error)))
           }, resp ⇒ self ! Authenticated(resp.jwt))
         case Failure(t) ⇒
           logger.error(s"Authentication request failed: ${t.getMessage}")
           logger.debug("cause", t)
-          e.resultPromise.failure(t)
+          e.responsePromise.failure(t)
 
       }
     case Authenticated(token) ⇒
@@ -107,18 +121,35 @@ class EndpointClientWorker(endPointRoot: String,
   }
 
   def authenticatedBehaviour: Receive = {
-    databaseWorkerBehaviour orElse defaultBehaviour
+    //databaseWorkerBehaviour orElse
+    defaultBehaviour
   }
 
   def defaultBehaviour: Receive = {
-    case GetServerVersion(withDetails, promise) =>
-      enqueue(HttpMethods.GET, s"/_api/version?details=$withDetails", promise)
+    case ApiCall(dbContext,
+                 apiMethod,
+                 apiUri,
+                 request,
+                 encoder,
+                 decoder,
+                 promise) =>
+      implicit val requestEncoder = encoder
+      implicit val requestDecoder = decoder
+      val entityFuture = request match {
+        case Some(req) ⇒
+          Marshal(req)
+            .to[RequestEntity]
+            .map(Some(_))
+        case None ⇒ Future.successful(None)
+      }
+      entityFuture.map(entity =>
+        enqueue(apiMethod, buildUri(apiUri, dbContext), promise, entity))
     case Enqueue(request, context) ⇒
-      logger.trace(s"--(request)-> $request")
+      logger.debug(s"--(request)-> $request")
       httpRequestQueue.offer((request, context))
     case (Success(response: HttpResponse),
           context: RequestContext[ApiResponse]) =>
-      logger.trace(s"<-(response)- $response")
+      logger.debug(s"<-(response)- $response")
       context.resultPromise.completeWith(
         toApiResponse(response, context.responseParser))
   }
@@ -190,5 +221,10 @@ class EndpointClientWorker(endPointRoot: String,
         List(Authorization(GenericHttpCredentials("bearer", jwtToken.get))))
     else
       request
+  }
+
+  def buildUri(uri: String, dbContext: Option[DBContext]) = dbContext match {
+    case Some(db) ⇒ s"/_db/${db.name}/$uri"
+    case None ⇒ uri
   }
 }

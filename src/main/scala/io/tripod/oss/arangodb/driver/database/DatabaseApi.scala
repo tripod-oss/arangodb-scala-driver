@@ -1,10 +1,15 @@
 package io.tripod.oss.arangodb.driver.database
 
 import akka.actor.ActorRef
+import akka.http.scaladsl.model.HttpMethods
 import io.circe.Encoder
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.tripod.oss.arangodb.driver._
+import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
 
 import scala.concurrent.{Future, Promise}
+import io.tripod.oss.arangodb.driver.utils.FutureUtils._
+import io.circe._, io.circe.generic.semiauto._
 
 trait DatabaseApi { self: ArangoDriver ⇒
   def currentDatabase: Future[Either[ApiError, CurrentDatabaseResponse]] = {
@@ -12,7 +17,12 @@ trait DatabaseApi { self: ArangoDriver ⇒
       router ! CurrentDatabase(promise))
   }
 
-  def userDatabase: Future[Either[ApiError, DatabaseListResponse]] = {
+  def userDatabase(implicit dbContext: Option[DBContext] = None)
+    : Future[Either[ApiError, DatabaseListResponse]] = {
+    implicit val encoder = None
+    implicit val decoder = deriveDecoder[DatabaseListResponse]
+    callApi(dbContext, HttpMethods.GET, "/_api/database/user")
+
     completeWithPromise[DatabaseListResponse](promise ⇒
       router ! UserDatabase(promise))
   }

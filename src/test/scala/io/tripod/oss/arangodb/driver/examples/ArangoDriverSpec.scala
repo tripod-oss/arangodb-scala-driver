@@ -4,11 +4,8 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.{Decoder, Encoder, Json}
-import io.tripod.oss.arangodb.driver.{
-  ApiError,
-  ArangoDriver,
-  ServerVersionResponse
-}
+import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
+import io.tripod.oss.arangodb.driver.{ApiError, ServerVersionResponse}
 import io.tripod.oss.arangodb.driver.database.{DatabaseApi, UserCreateOptions}
 import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
