@@ -116,11 +116,11 @@ class EndpointClientWorker(endPointRoot: String,
                                      s"/_api/version?details=$withDetails",
                                      promise)
     case Enqueue(request, context) ⇒
-      logger.debug(s"--(request)-> $request")
+      logger.trace(s"--(request)-> $request")
       httpRequestQueue.offer((request, context))
     case (Success(response: HttpResponse),
           context: RequestContext[ApiResponse]) =>
-      logger.debug(s"<-(response)- $response")
+      logger.trace(s"<-(response)- $response")
       context.resultPromise.completeWith(
         toApiResponse(response, context.responseParser))
   }
