@@ -22,5 +22,5 @@ before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
 
-script: "sbt clean coverage test"
+script: "sbt clean test"
 #after_success: "sbt coverageReport coveralls"
