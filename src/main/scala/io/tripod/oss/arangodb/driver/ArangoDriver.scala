@@ -20,15 +20,13 @@ import scala.util.{Failure, Success}
 /**
   * Created by nicolas.jouanin on 20/01/17.
   */
-class ArangoDriver(baseConfig: Config,
+class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
                    user: Option[String] = None,
                    password: Option[String] = None) {
   private val config = {
     val internalConfig =
       baseConfig.getConfig("arangodb-driver.internal-config")
-    baseConfig
-      .withoutPath("akka")
-      .withFallback(internalConfig)
+    baseConfig.withoutPath("akka").withFallback(internalConfig)
   }
 
   private val _userName =
@@ -44,6 +42,11 @@ class ArangoDriver(baseConfig: Config,
     system.actorOf(Props(new RequestRouter(config, _userName, _password)),
                    "requestRouter")
 
+  // Auto add endpoints from configuration
+  config
+    .getStringList("arangodb-driver.endpoints")
+    .forEach(endpoint => addEndPoint(endpoint))
+
   def addEndPoint(endPointRoot: String): Unit =
     router ! AddEndpoint(endPointRoot)
 
@@ -55,8 +58,8 @@ class ArangoDriver(baseConfig: Config,
 
   def close = system.terminate()
 
-  def getServerVersion(
-      withDetails: Boolean = false): Future[Either[ApiError, ApiResponse]] = {
+  def getServerVersion(withDetails: Boolean = false)
+    : Future[Either[ApiError, ServerVersionResponse]] = {
     completeWithPromise[ServerVersionResponse](promise ⇒
       router ! GetServerVersion(withDetails, promise))
   }
@@ -71,6 +74,7 @@ class ArangoDriver(baseConfig: Config,
 }
 
 object ArangoDriver {
+  def apply() = new ArangoDriver()
   def apply(config: Config) = new ArangoDriver(config)
   def apply(username: String,
             password: String,
