@@ -16,6 +16,7 @@ import io.tripod.oss.arangodb.driver.RequestRouter.{
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import io.tripod.oss.arangodb.driver.utils.FutureUtils._
 
 /**
   * Created by nicolas.jouanin on 20/01/17.
@@ -64,13 +65,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
       router ! GetServerVersion(withDetails, promise))
   }
 
-  protected def completeWithPromise[T <: ApiResponse](
-      request: Promise[Either[ApiError, T]] ⇒ Unit)
-    : Future[Either[ApiError, T]] = {
-    val responsePromise = Promise[Either[ApiError, T]]
-    request(responsePromise)
-    responsePromise.future
-  }
+  def db(dbName: String) = new ArangoDatabase(dbName, router)
 }
 
 object ArangoDriver {
