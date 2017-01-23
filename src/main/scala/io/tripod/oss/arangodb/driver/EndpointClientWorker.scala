@@ -76,6 +76,15 @@ class EndpointClientWorker(endPointRoot: String,
   private var jwtToken: Option[String] = None
 
   def receive = {
+    if (userName.trim.equals("")) {
+      //Assume authentification is not required
+      authenticatedBehaviour
+    } else {
+      authenticationRequiredBehaviour
+    }
+  }
+
+  def authenticationRequiredBehaviour: Receive = {
     case e: WorkMessage[_] if jwtToken.isEmpty ⇒
       stash()
       authenticate.andThen {
@@ -85,7 +94,7 @@ class EndpointClientWorker(endPointRoot: String,
             e.resultPromise.complete(Success(Left(error)))
           }, resp ⇒ self ! Authenticated(resp.jwt))
         case Failure(t) ⇒
-          logger.error(s"Authentication failed: ${t.getMessage}")
+          logger.error(s"Authentication request failed: ${t.getMessage}")
           logger.debug("cause", t)
           e.resultPromise.failure(t)
 
@@ -148,16 +157,17 @@ class EndpointClientWorker(endPointRoot: String,
       parser: HttpEntity ⇒ Future[Either[ApiError, T]])
     : Future[Either[ApiError, T]] = {
     if (httpResponse.status.isFailure()) {
-      val errorMessage = httpResponse.status match {
+      val errorMessage: String = httpResponse.status match {
         case StatusCodes.Unauthorized ⇒
           httpResponse.header[WWWAuthenticate].map(_.value()).getOrElse("")
         case _ ⇒ "Undefined error"
       }
-      Unmarshal(httpResponse.entity)
-        .to[String]
-        .map(errorBody =>
-          Left(
-            ApiError(httpResponse.status.intValue, errorMessage, errorBody)))
+      Unmarshaller
+        .stringUnmarshaller(httpResponse.entity)
+        .map(
+          errorBody =>
+            Left(
+              ApiError(httpResponse.status.intValue, errorMessage, errorBody)))
     } else {
       parser(httpResponse.entity).recover {
         case f: DecodingFailure ⇒
