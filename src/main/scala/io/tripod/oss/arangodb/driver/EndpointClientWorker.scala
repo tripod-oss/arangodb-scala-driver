@@ -127,7 +127,7 @@ class EndpointClientWorker(endPointRoot: String,
 
   private def authenticate(
       implicit system: ActorSystem): Future[Either[ApiError, AuthResponse]] = {
-    import de.heikoseeberger.akkahttpcirce.CirceSupport._
+//    import de.heikoseeberger.akkahttpcirce.CirceSupport._
     for {
       entity ← Marshal(AuthRequest(userName, password)).to[RequestEntity]
       request ← Http().singleRequest(
@@ -141,10 +141,16 @@ class EndpointClientWorker(endPointRoot: String,
 
   def enqueue[R <: ApiResponse](method: HttpMethod,
                                 uri: String,
-                                promise: Promise[Either[ApiError, R]])(
+                                promise: Promise[Either[ApiError, R]],
+                                requestEntity: Option[RequestEntity] = None)(
       implicit um: Unmarshaller[HttpEntity, R]) = {
+    val request =
+      if (requestEntity.isDefined)
+        buildHttpRequest(method, uri).withEntity(requestEntity.get)
+      else
+        buildHttpRequest(method, uri)
     self ! Enqueue(
-      buildHttpRequest(HttpMethods.GET, uri),
+      request,
       RequestContext[R](
         promise.asInstanceOf[Promise[Either[ApiError, R]]],
         entity ⇒ Unmarshal(entity).to[R].map(result => Right(result))

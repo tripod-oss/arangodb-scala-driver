@@ -1,9 +1,7 @@
 package io.tripod.oss.arangodb.driver
 
-import io.tripod.oss.arangodb.driver.database.{
-  CurrentDatabaseResponse,
-  DatabaseListResponse
-}
+import io.circe.Encoder
+import io.tripod.oss.arangodb.driver.database._
 
 import scala.concurrent.Promise
 
@@ -27,3 +25,10 @@ case class UserDatabase(
 case class ListDatabase(
     resultPromise: Promise[Either[ApiError, DatabaseListResponse]])
     extends WorkMessage[DatabaseListResponse]
+
+case class CreateDatabase[T](
+    dbName: String,
+    users: Option[Seq[UserCreateOptions[T]]],
+    resultPromise: Promise[Either[ApiError, CreateDatabaseResponse]],
+    extraEncoder: Encoder[T])
+    extends WorkMessage[CreateDatabaseResponse]

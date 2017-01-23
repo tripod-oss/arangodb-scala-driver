@@ -20,3 +20,6 @@ case class CurrentDatabaseResponse(result: CurrentDatabaseResponseResult,
 
 case class DatabaseListResponse(result: Seq[String], error: Boolean, code: Int)
     extends DatabaseApiResponse[Seq[String]]
+
+case class CreateDatabaseResponse(result: Boolean, error: Boolean, code: Int)
+    extends DatabaseApiResponse[Boolean]

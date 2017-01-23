@@ -3,8 +3,9 @@ package io.tripod.oss.arangodb.driver.examples
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.LazyLogging
+import io.circe.{Decoder, Encoder, Json}
 import io.tripod.oss.arangodb.driver.{ArangoDriver, ServerVersionResponse}
-import io.tripod.oss.arangodb.driver.database.DatabaseApi
+import io.tripod.oss.arangodb.driver.database.{DatabaseApi, UserCreateOptions}
 import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import shapeless.Lazy
@@ -48,6 +49,23 @@ class ArangoDriverSpec
       val result = driver.databaseList.futureValue
       result.right.value.error shouldEqual false
       result.right.value.result should not be empty
+      logger.debug(result.right.value.toString)
+    }
+    "create database" in {
+      import io.tripod.oss.arangodb.driver.database.Implicits._
+      val result = driver.createDatabase("testDB").futureValue
+      result.right.value shouldEqual true
+      logger.debug(result.right.value.toString)
+    }
+    "create database with extra" in {
+      val users = Seq(
+        UserCreateOptions("testUser",
+                          Some("testPassword"),
+                          extra = Some("ExtraString"))
+      )
+      val result =
+        driver.createDatabase("testDBWithExtra", Some(users)).futureValue
+      result.right.value shouldEqual true
       logger.debug(result.right.value.toString)
     }
   }
