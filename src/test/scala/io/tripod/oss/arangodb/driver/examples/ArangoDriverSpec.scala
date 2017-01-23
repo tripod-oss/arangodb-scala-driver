@@ -4,11 +4,17 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.{Decoder, Encoder, Json}
-import io.tripod.oss.arangodb.driver.{ArangoDriver, ServerVersionResponse}
+import io.tripod.oss.arangodb.driver.{
+  ApiError,
+  ArangoDriver,
+  ServerVersionResponse
+}
 import io.tripod.oss.arangodb.driver.database.{DatabaseApi, UserCreateOptions}
 import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import shapeless.Lazy
+
+import scala.concurrent.Future
 
 /**
   * Created by nicolas.jouanin on 23/01/17.
@@ -56,6 +62,7 @@ class ArangoDriverSpec
       val result = driver.createDatabase("testDB").futureValue
       result.right.value shouldEqual true
       logger.debug(result.right.value.toString)
+      driver.removeDatabase("testDB").futureValue
     }
     "create database with extra" in {
       val users = Seq(
@@ -66,6 +73,21 @@ class ArangoDriverSpec
       val result =
         driver.createDatabase("testDBWithExtra", Some(users)).futureValue
       result.right.value shouldEqual true
+      logger.debug(result.right.value.toString)
+      driver.removeDatabase("testDBWithExtra").futureValue
+    }
+    "remove database" in {
+      import io.tripod.oss.arangodb.driver.database.Implicits._
+      val result = driver
+        .createDatabase("removeDB")
+        .flatMap {
+          case Right(true) => driver.removeDatabase("removeDB")
+          case Left(x) => Future.successful(Left(x))
+        }
+        .futureValue
+      result.right.value.result shouldEqual true
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
   }

@@ -32,3 +32,8 @@ case class CreateDatabase[T](
     resultPromise: Promise[Either[ApiError, CreateDatabaseResponse]],
     extraEncoder: Encoder[T])
     extends WorkMessage[CreateDatabaseResponse]
+
+case class RemoveDatabase(
+    dbName: String,
+    resultPromise: Promise[Either[ApiError, RemoveDatabaseResponse]])
+    extends WorkMessage[RemoveDatabaseResponse]

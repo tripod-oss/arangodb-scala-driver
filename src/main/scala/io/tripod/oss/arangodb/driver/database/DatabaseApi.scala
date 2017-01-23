@@ -30,4 +30,10 @@ trait DatabaseApi { self: ArangoDriver ⇒
       .map(result => result.map(_.result))
 
   }
+
+  def removeDatabase(
+      dbName: String): Future[Either[ApiError, RemoveDatabaseResponse]] = {
+    completeWithPromise[RemoveDatabaseResponse](promise ⇒
+      router ! RemoveDatabase(dbName, promise))
+  }
 }

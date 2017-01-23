@@ -112,9 +112,7 @@ class EndpointClientWorker(endPointRoot: String,
 
   def defaultBehaviour: Receive = {
     case GetServerVersion(withDetails, promise) =>
-      enqueue[ServerVersionResponse](HttpMethods.GET,
-                                     s"/_api/version?details=$withDetails",
-                                     promise)
+      enqueue(HttpMethods.GET, s"/_api/version?details=$withDetails", promise)
     case Enqueue(request, context) ⇒
       logger.trace(s"--(request)-> $request")
       httpRequestQueue.offer((request, context))

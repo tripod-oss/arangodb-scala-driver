@@ -17,25 +17,18 @@ trait DatabaseWorkerBehaviour { this: EndpointClientWorker ⇒
 
   def databaseWorkerBehaviour: Receive = {
     case CurrentDatabase(promise) =>
-      enqueue[CurrentDatabaseResponse](HttpMethods.GET,
-                                       "/_api/database/current",
-                                       promise)
+      enqueue(HttpMethods.GET, "/_api/database/current", promise)
     case UserDatabase(promise) ⇒
-      enqueue[DatabaseListResponse](HttpMethods.GET,
-                                    "/_api/database/user",
-                                    promise)
+      enqueue(HttpMethods.GET, "/_api/database/user", promise)
     case ListDatabase(promise) ⇒
-      enqueue[DatabaseListResponse](HttpMethods.GET, "/_api/database", promise)
-
+      enqueue(HttpMethods.GET, "/_api/database", promise)
     case CreateDatabase(dbName, users, promise, extraEncoder) =>
       implicit val encoder = extraEncoder
       Marshal(CreateDatabaseRequest(dbName, users))
         .to[RequestEntity]
-        .map(
-          request =>
-            enqueue[CreateDatabaseResponse](HttpMethods.POST,
-                                            "/_api/database",
-                                            promise,
-                                            Some(request)))
+        .map(request =>
+          enqueue(HttpMethods.POST, "/_api/database", promise, Some(request)))
+    case RemoveDatabase(dbName, promise) ⇒
+      enqueue(HttpMethods.DELETE, s"/_api/database/$dbName", promise)
   }
 }
