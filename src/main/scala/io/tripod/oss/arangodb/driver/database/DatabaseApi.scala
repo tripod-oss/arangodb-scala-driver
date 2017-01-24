@@ -22,9 +22,6 @@ trait DatabaseApi { self: ArangoDriver ⇒
     implicit val encoder = None
     implicit val decoder = deriveDecoder[DatabaseListResponse]
     callApi(dbContext, HttpMethods.GET, "/_api/database/user")
-
-    completeWithPromise[DatabaseListResponse](promise ⇒
-      router ! UserDatabase(promise))
   }
 
   def databaseList: Future[Either[ApiError, DatabaseListResponse]] = {
