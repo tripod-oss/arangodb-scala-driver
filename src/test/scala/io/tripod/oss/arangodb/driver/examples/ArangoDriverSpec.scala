@@ -42,6 +42,7 @@ class ArangoDriverSpec
       result.right.value.result should not be empty
       logger.debug(result.right.value.toString)
     }
+    /*
     "get database list" in {
       val result = driver.databaseList.futureValue
       result.right.value.error shouldEqual false
@@ -86,6 +87,6 @@ class ArangoDriverSpec
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
-    }
+    }*/
   }
 }
