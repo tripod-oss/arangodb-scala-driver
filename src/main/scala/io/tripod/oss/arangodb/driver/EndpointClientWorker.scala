@@ -137,9 +137,7 @@ class EndpointClientWorker(endPointRoot: String,
       implicit val requestDecoder = decoder
       val entityFuture = request match {
         case Some(req) ⇒
-          Marshal(req)
-            .to[RequestEntity]
-            .map(Some(_))
+          Marshal(req).to[RequestEntity].map(Some(_))
         case None ⇒ Future.successful(None)
       }
       entityFuture.map(entity =>
