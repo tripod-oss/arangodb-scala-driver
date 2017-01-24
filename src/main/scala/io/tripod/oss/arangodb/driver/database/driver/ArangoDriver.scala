@@ -64,10 +64,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     : Future[Either[ApiError, ServerVersionResponse]] = {
     implicit val encoder = Some(deriveEncoder[ServerVersionRequest])
     implicit val decoder = deriveDecoder[ServerVersionResponse]
-    callApi(dbContext,
-            HttpMethods.GET,
-            "/_api/version",
-            Some(ServerVersionRequest(withDetails)))
+    callApi(dbContext, HttpMethods.GET, s"/_api/version?details=$withDetails")
   }
 
   def callApi[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContext],
