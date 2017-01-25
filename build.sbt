@@ -12,11 +12,11 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.4.16",
   "com.typesafe.akka" %% "akka-slf4j" % "2.4.16",
   "com.typesafe.akka" %% "akka-http-core" % "10.0.1",
-  "com.typesafe.akka" %% "akka-http" % "10.0.1",
+  "com.typesafe.akka" %% "akka-http" % "10.0.2",
   "com.typesafe" % "config" % "1.3.1",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
   "ch.qos.logback" % "logback-classic" % "1.1.8",
-  "de.heikoseeberger" %% "akka-http-circe" % "1.11.0",
+  "de.heikoseeberger" %% "akka-http-circe" % "1.12.0",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 )
 libraryDependencies ++= Seq(
