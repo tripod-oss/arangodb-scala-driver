@@ -27,10 +27,7 @@ import io.tripod.oss.arangodb.driver.EndpointClientWorker.{
   Enqueue
 }
 import io.circe.generic.auto._
-import io.tripod.oss.arangodb.driver.database.{
-  CreateDatabaseRequest,
-  DatabaseWorkerBehaviour
-}
+import io.tripod.oss.arangodb.driver.database.DatabaseWorkerBehaviour
 
 case class DBContext(name: String)
 
@@ -43,10 +40,6 @@ case class ApiCall[Q <: ApiRequest, R <: ApiResponse](
     decoder: Decoder[R],
     responsePromise: Promise[Either[ApiError, R]])
 
-case class RequestContext[T <: ApiResponse](
-    resultPromise: Promise[Either[ApiError, T]],
-    responseParser: HttpEntity ⇒ Future[Either[ApiError, T]])
-
 object EndpointClientWorker {
   def props(endPointRoot: String,
             driverConfig: Config,
@@ -55,8 +48,8 @@ object EndpointClientWorker {
     Props(
       new EndpointClientWorker(endPointRoot, driverConfig, userName, password))
   case class Authenticated(token: String)
-  case class Enqueue[T <: ApiResponse](request: HttpRequest,
-                                       context: RequestContext[T])
+  case class Enqueue[Q <: ApiRequest, R <: ApiResponse](request: HttpRequest,
+                                                        apiCall: ApiCall[Q, R])
 }
 
 class EndpointClientWorker(endPointRoot: String,
@@ -77,7 +70,7 @@ class EndpointClientWorker(endPointRoot: String,
   implicit val system = context.system
 
   private val httpPool =
-    Http(context.system).superPool[RequestContext[_]](
+    Http(context.system).superPool[ApiCall[_, _]](
       settings = ConnectionPoolSettings(driverConfig))
 
   private val httpRequestQueue =
@@ -111,7 +104,6 @@ class EndpointClientWorker(endPointRoot: String,
           logger.error(s"Authentication request failed: ${t.getMessage}")
           logger.debug("cause", t)
           e.responsePromise.failure(t)
-
       }
     case Authenticated(token) ⇒
       logger.debug("Authentication successful")
@@ -121,74 +113,50 @@ class EndpointClientWorker(endPointRoot: String,
   }
 
   def authenticatedBehaviour: Receive = {
-    //databaseWorkerBehaviour orElse
     defaultBehaviour
   }
 
   def defaultBehaviour: Receive = {
-    case ApiCall(dbContext,
-                 apiMethod,
-                 apiUri,
-                 request,
-                 encoder,
-                 decoder,
-                 promise) =>
-      implicit val requestEncoder = encoder
-      implicit val requestDecoder = decoder
-      val entityFuture = request match {
-        case Some(req) ⇒
-          Marshal(req).to[RequestEntity].map(Some(_))
-        case None ⇒ Future.successful(None)
-      }
-      entityFuture.map(entity =>
-        enqueue(apiMethod, buildUri(apiUri, dbContext), promise, entity))
-    case Enqueue(request, context) ⇒
+    case apiCall: ApiCall[_, _] ⇒ enqueue(apiCall)
+    case Enqueue(request, apiCall) ⇒
       logger.debug(s"--(request)-> $request")
-      httpRequestQueue.offer((request, context))
-    case (Success(response: HttpResponse),
-          context: RequestContext[ApiResponse]) =>
+      httpRequestQueue.offer((request, apiCall))
+    case (Success(response: HttpResponse), apiCall: ApiCall[_, ApiResponse]) =>
       logger.debug(s"<-(response)- $response")
-      context.resultPromise.completeWith(
-        toApiResponse(response, context.responseParser))
+      apiCall.responsePromise.completeWith(
+        toApiResponse(response, apiCall.decoder))
   }
 
   private def authenticate(
       implicit system: ActorSystem): Future[Either[ApiError, AuthResponse]] = {
-//    import de.heikoseeberger.akkahttpcirce.CirceSupport._
+    import io.circe._, io.circe.generic.semiauto._
     for {
       entity ← Marshal(AuthRequest(userName, password)).to[RequestEntity]
       request ← Http().singleRequest(
         HttpRequest(POST, s"$endPointRoot/_open/auth", entity = entity))
-      response ← toApiResponse(
-        request,
-        entity ⇒
-          Unmarshal(entity).to[AuthResponse].map(result => Right(result)))
+      response ← toApiResponse(request, deriveDecoder[AuthResponse])
     } yield response
   }
 
-  def enqueue[R <: ApiResponse](method: HttpMethod,
-                                uri: String,
-                                promise: Promise[Either[ApiError, R]],
-                                requestEntity: Option[RequestEntity] = None)(
-      implicit um: Unmarshaller[HttpEntity, R]) = {
-    val request =
-      if (requestEntity.isDefined)
-        buildHttpRequest(method, uri).withEntity(requestEntity.get)
-      else
-        buildHttpRequest(method, uri)
-    self ! Enqueue(
-      request,
-      RequestContext[R](
-        promise.asInstanceOf[Promise[Either[ApiError, R]]],
-        entity ⇒ Unmarshal(entity).to[R].map(result => Right(result))
-      )
-    )
+  def enqueue[Q <: ApiRequest, R <: ApiResponse](apiCall: ApiCall[Q, R]) = {
+    val requestEntity = apiCall.request.map { req ⇒
+      implicit val encoder = apiCall.encoder.get
+      Marshal[Q](req).to[RequestEntity]
+    }
+    val requestFuture = requestEntity match {
+      case Some(entityFuture) ⇒
+        entityFuture.map(
+          entity ⇒
+            buildHttpRequest(apiCall.apiMethod, apiCall.apiUri)
+              .withEntity(entity))
+      case None ⇒
+        Future.successful(buildHttpRequest(apiCall.apiMethod, apiCall.apiUri))
+    }
+    requestFuture.map(httpRequest ⇒ self ! Enqueue(httpRequest, apiCall))
   }
 
-  private def toApiResponse[T <: ApiResponse](
-      httpResponse: HttpResponse,
-      parser: HttpEntity ⇒ Future[Either[ApiError, T]])
-    : Future[Either[ApiError, T]] = {
+  private def toApiResponse[R <: ApiResponse](httpResponse: HttpResponse,
+                                              entityDecoder: Decoder[R]) = {
     if (httpResponse.status.isFailure()) {
       val errorMessage: String = httpResponse.status match {
         case StatusCodes.Unauthorized ⇒
@@ -202,13 +170,18 @@ class EndpointClientWorker(endPointRoot: String,
             Left(
               ApiError(httpResponse.status.intValue, errorMessage, errorBody)))
     } else {
-      parser(httpResponse.entity).recover {
-        case f: DecodingFailure ⇒
-          val errorBody = Await
-            .result(Unmarshal(httpResponse.entity).to[String], 30 seconds)
-            .asInstanceOf[String]
-          Left(ApiError(httpResponse.status.intValue, f.getMessage, errorBody))
-      }
+      implicit val decoder = entityDecoder
+      Unmarshal(httpResponse.entity)
+        .to[R]
+        .map(result => Right(result))
+        .recover {
+          case f: DecodingFailure ⇒
+            val errorBody = Await
+              .result(Unmarshal(httpResponse.entity).to[String], 30 seconds)
+              .asInstanceOf[String]
+            Left(
+              ApiError(httpResponse.status.intValue, f.getMessage, errorBody))
+        }
     }
   }
 

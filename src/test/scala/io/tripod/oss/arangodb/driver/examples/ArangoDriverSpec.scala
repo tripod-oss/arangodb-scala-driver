@@ -36,10 +36,17 @@ class ArangoDriverSpec
       result.right.value.license should not be empty
       logger.debug(result.right.value.toString)
     }
+
     "get user database list" in {
       val result = driver.userDatabase.futureValue
       result.right.value.error shouldEqual false
       result.right.value.result should not be empty
+      logger.debug(result.right.value.toString)
+    }
+
+    "get current database" in {
+      val result = driver.currentDatabase.futureValue
+      result.right.value.error shouldEqual false
       logger.debug(result.right.value.toString)
     }
     /*
@@ -49,12 +56,7 @@ class ArangoDriverSpec
       result.right.value.result should not be empty
       logger.debug(result.right.value.toString)
     }
-    "get current database" in {
-      val result = driver.databaseList.futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.result should not be empty
-      logger.debug(result.right.value.toString)
-    }
+
     "create database" in {
       import io.tripod.oss.arangodb.driver.database.Implicits._
       val result = driver.createDatabase("testDB").futureValue

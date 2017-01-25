@@ -10,20 +10,24 @@ import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
 import scala.concurrent.{Future, Promise}
 import io.tripod.oss.arangodb.driver.utils.FutureUtils._
 import io.circe._, io.circe.generic.semiauto._
+import CodecsImplicits._
 
 trait DatabaseApi { self: ArangoDriver ⇒
-  def currentDatabase: Future[Either[ApiError, CurrentDatabaseResponse]] = {
-    completeWithPromise[CurrentDatabaseResponse](promise ⇒
-      router ! CurrentDatabase(promise))
+
+  def currentDatabase(implicit dbContext: Option[DBContext] = None)
+    : Future[Either[ApiError, CurrentDatabaseResponse]] = {
+    callApi[CurrentDatabaseResponse](dbContext,
+                                     HttpMethods.GET,
+                                     "/_api/database/current")
   }
 
   def userDatabase(implicit dbContext: Option[DBContext] = None)
     : Future[Either[ApiError, DatabaseListResponse]] = {
-    implicit val encoder = None
-    implicit val decoder = deriveDecoder[DatabaseListResponse]
-    callApi(dbContext, HttpMethods.GET, "/_api/database/user")
+    callApi[DatabaseListResponse](dbContext,
+                                  HttpMethods.GET,
+                                  "/_api/database/user")
   }
-
+  /*
   def databaseList: Future[Either[ApiError, DatabaseListResponse]] = {
     completeWithPromise[DatabaseListResponse](promise ⇒
       router ! ListDatabase(promise))
@@ -43,4 +47,5 @@ trait DatabaseApi { self: ArangoDriver ⇒
     completeWithPromise[RemoveDatabaseResponse](promise ⇒
       router ! RemoveDatabase(dbName, promise))
   }
+ */
 }

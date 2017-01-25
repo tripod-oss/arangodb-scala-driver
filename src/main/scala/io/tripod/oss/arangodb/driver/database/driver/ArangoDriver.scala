@@ -13,6 +13,7 @@ import io.tripod.oss.arangodb.driver.RequestRouter.{
 }
 import io.tripod.oss.arangodb.driver._
 import io.tripod.oss.arangodb.driver.utils.FutureUtils._
+import io.tripod.oss.arangodb.driver.database.CodecsImplicits._
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
@@ -62,16 +63,16 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   def getServerVersion(withDetails: Boolean = false)(
       implicit dbContext: Option[DBContext] = None)
     : Future[Either[ApiError, ServerVersionResponse]] = {
-    implicit val encoder = Some(deriveEncoder[ServerVersionRequest])
-    implicit val decoder = deriveDecoder[ServerVersionResponse]
-    callApi(dbContext, HttpMethods.GET, s"/_api/version?details=$withDetails")
+    callApi[ServerVersionResponse](dbContext,
+                                   HttpMethods.GET,
+                                   s"/_api/version?details=$withDetails")
   }
 
-  def callApi[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContext],
-                                                 apiMethod: HttpMethod,
-                                                 apiUri: String,
-                                                 request: Option[Q] = None)(
-      implicit requestEncoder: Option[Encoder[Q]],
+  def callApi[R <: ApiResponse](dbContext: Option[DBContext],
+                                apiMethod: HttpMethod,
+                                apiUri: String,
+                                request: Option[ApiRequest] = None)(
+      implicit requestEncoder: Option[Encoder[ApiRequest]] = None,
       responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
     val responsePromise = Promise[Either[ApiError, R]]
     router ! ApiCall(dbContext,

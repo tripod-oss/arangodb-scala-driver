@@ -16,7 +16,7 @@ object Basictest extends App {
   driver.addEndPoint("http://10.156.223.115:8529/")
   Thread.sleep(500)
   driver.getServerVersion(true).map(println)
-  driver.currentDatabase.map(println)
+  //driver.currentDatabase.map(println)
   driver.userDatabase.map(println)
   Thread.sleep(10000)
   driver.close
