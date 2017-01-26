@@ -27,7 +27,6 @@ import io.tripod.oss.arangodb.driver.EndpointClientWorker.{
   Enqueue
 }
 import io.circe.generic.auto._
-import io.tripod.oss.arangodb.driver.database.DatabaseWorkerBehaviour
 
 case class DBContext(name: String)
 
@@ -58,7 +57,6 @@ class EndpointClientWorker(endPointRoot: String,
                            password: String)
     extends Actor
     with Stash
-    with DatabaseWorkerBehaviour
     with LazyLogging {
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
 

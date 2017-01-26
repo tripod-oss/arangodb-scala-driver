@@ -6,11 +6,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import io.circe.{Decoder, Encoder}
-import io.tripod.oss.arangodb.driver.RequestRouter.{
-  AddEndpoint,
-  GetEndPoints,
-  RemoveEndpoint
-}
+import io.tripod.oss.arangodb.driver.RequestRouter.{AddEndpoint, GetEndPoints, RemoveEndpoint}
 import io.tripod.oss.arangodb.driver._
 import io.tripod.oss.arangodb.driver.utils.FutureUtils._
 import io.tripod.oss.arangodb.driver.database.CodecsImplicits._
@@ -36,13 +32,12 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   private val _password =
     password.getOrElse(config.getString("arangodb-driver.auth.password"))
 
-  implicit val system = ActorSystem("ArangoDriver", config)
-  implicit val ec = system.dispatcher
+  implicit val system  = ActorSystem("ArangoDriver", config)
+  implicit val ec      = system.dispatcher
   implicit val timeout = Timeout(5 seconds)
 
   private[database] val router =
-    system.actorOf(Props(new RequestRouter(config, _userName, _password)),
-                   "requestRouter")
+    system.actorOf(Props(new RequestRouter(config, _userName, _password)), "requestRouter")
 
   // Auto add endpoints from configuration
   config
@@ -61,38 +56,41 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   def close = system.terminate()
 
   def getServerVersion(withDetails: Boolean = false)(
-      implicit dbContext: Option[DBContext] = None)
-    : Future[Either[ApiError, ServerVersionResponse]] = {
-    callApi[ServerVersionResponse](dbContext,
-                                   HttpMethods.GET,
-                                   s"/_api/version?details=$withDetails")
+      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, ServerVersionResponse]] = {
+
+    implicit val ServerVersionRequestEncoder = deriveEncoder[ServerVersionRequest]
+    callApi[ServerVersionResponse](dbContext, HttpMethods.GET, s"/_api/version?details=$withDetails")
   }
 
-  def callApi[R <: ApiResponse](dbContext: Option[DBContext],
-                                apiMethod: HttpMethod,
-                                apiUri: String,
-                                request: Option[ApiRequest] = None)(
-      implicit requestEncoder: Option[Encoder[ApiRequest]] = None,
-      responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
+  def callApi[R <: ApiResponse](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
+      implicit responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
+    val responsePromise = Promise[Either[ApiError, R]]
+    router ! ApiCall(dbContext, apiMethod, apiUri, None, None, responseDecoder, responsePromise)
+    responsePromise.future
+  }
+
+  def callApi[Q <: ApiRequest, R <: ApiResponse](
+      dbContext: Option[DBContext],
+      apiMethod: HttpMethod,
+      apiUri: String,
+      request: Q)(implicit requestEncoder: Encoder[Q], responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
     val responsePromise = Promise[Either[ApiError, R]]
     router ! ApiCall(dbContext,
                      apiMethod,
                      apiUri,
-                     request,
-                     requestEncoder,
+                     Some(request),
+                     Some(requestEncoder),
                      responseDecoder,
                      responsePromise)
     responsePromise.future
   }
 
-//  def db(dbContext: String) = new ArangoDatabase(dbContext, self)
+  //  def db(dbContext: String) = new ArangoDatabase(dbContext, self)
 }
 
 object ArangoDriver {
-  def apply() = new ArangoDriver()
+  def apply()               = new ArangoDriver()
   def apply(config: Config) = new ArangoDriver(config)
-  def apply(username: String,
-            password: String,
-            config: Config = ConfigFactory.load()) =
+  def apply(username: String, password: String, config: Config = ConfigFactory.load()) =
     new ArangoDriver(config, Some(username), Some(password))
 }

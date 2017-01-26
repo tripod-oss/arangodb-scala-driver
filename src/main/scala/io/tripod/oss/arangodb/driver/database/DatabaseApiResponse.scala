@@ -8,21 +8,14 @@ trait DatabaseApiResponse[T] extends ApiResponse {
   def code: Int
 }
 
-case class CurrentDatabaseResponseResult(name: String,
-                                         id: String,
-                                         path: String,
-                                         isSystem: Boolean)
+case class CurrentDatabaseResponseResult(name: String, id: String, path: String, isSystem: Boolean)
 
-case class CurrentDatabaseResponse(result: CurrentDatabaseResponseResult,
-                                   error: Boolean,
-                                   code: Int)
+case class CurrentDatabaseResponse(result: CurrentDatabaseResponseResult, error: Boolean, code: Int)
     extends DatabaseApiResponse[CurrentDatabaseResponseResult]
 
 case class DatabaseListResponse(result: Seq[String], error: Boolean, code: Int)
     extends DatabaseApiResponse[Seq[String]]
 
-case class CreateDatabaseResponse(result: Boolean, error: Boolean, code: Int)
-    extends DatabaseApiResponse[Boolean]
+case class CreateDatabaseResponse(result: Boolean, error: Boolean, code: Int) extends DatabaseApiResponse[Boolean]
 
-case class RemoveDatabaseResponse(result: Boolean, error: Boolean, code: Int)
-    extends DatabaseApiResponse[Boolean]
+case class DeleteDatabaseResponse(result: Boolean, error: Boolean, code: Int) extends DatabaseApiResponse[Boolean]

@@ -14,38 +14,37 @@ import CodecsImplicits._
 
 trait DatabaseApi { self: ArangoDriver ⇒
 
-  def currentDatabase(implicit dbContext: Option[DBContext] = None)
-    : Future[Either[ApiError, CurrentDatabaseResponse]] = {
-    callApi[CurrentDatabaseResponse](dbContext,
-                                     HttpMethods.GET,
-                                     "/_api/database/current")
+  def currentDatabase(
+      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, CurrentDatabaseResponse]] = {
+    callApi[CurrentDatabaseResponse](dbContext, HttpMethods.GET, "/_api/database/current")
   }
 
-  def userDatabase(implicit dbContext: Option[DBContext] = None)
-    : Future[Either[ApiError, DatabaseListResponse]] = {
-    callApi[DatabaseListResponse](dbContext,
-                                  HttpMethods.GET,
-                                  "/_api/database/user")
-  }
-  /*
-  def databaseList: Future[Either[ApiError, DatabaseListResponse]] = {
-    completeWithPromise[DatabaseListResponse](promise ⇒
-      router ! ListDatabase(promise))
+  def userDatabase(implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, DatabaseListResponse]] = {
+    callApi[DatabaseListResponse](dbContext, HttpMethods.GET, "/_api/database/user")
   }
 
-  def createDatabase[T](dbName: String,
-                        users: Option[Seq[UserCreateOptions[T]]] = None)(
-      implicit extraEncoder: Encoder[T]): Future[Either[ApiError, Boolean]] = {
-    completeWithPromise[CreateDatabaseResponse](promise ⇒
-      router ! CreateDatabase(dbName, users, promise, extraEncoder))
-      .map(result => result.map(_.result))
-
+  def databaseList(implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, DatabaseListResponse]] = {
+    callApi[DatabaseListResponse](dbContext, HttpMethods.GET, "/_api/database")
   }
 
-  def removeDatabase(
-      dbName: String): Future[Either[ApiError, RemoveDatabaseResponse]] = {
-    completeWithPromise[RemoveDatabaseResponse](promise ⇒
-      router ! RemoveDatabase(dbName, promise))
+  def createDatabase[T](dbName: String, users: Option[Seq[UserCreateOptions[T]]] = None)(
+      implicit optionsEncoder: Encoder[T],
+      dbContext: Option[DBContext] = None): Future[Either[ApiError, Boolean]] = {
+
+    val request                               = CreateDatabaseRequest(dbName, users)
+    implicit val userCreateOptionsEncoder     = deriveEncoder[UserCreateOptions[T]]
+    implicit val createDatabaseRequestEncoder = deriveEncoder[CreateDatabaseRequest[UserCreateOptions[T]]]
+    implicit val extraEncoder                 = optionsEncoder
+
+    callApi[CreateDatabaseRequest[UserCreateOptions[T]], CreateDatabaseResponse](dbContext,
+                                                                                 HttpMethods.POST,
+                                                                                 "/_api/database",
+                                                                                 request).map(result =>
+      result.map(_.result))
   }
- */
+  def removeDatabase(dbName: String)(
+      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, DeleteDatabaseResponse]] = {
+    implicit val deleteDatabaseResponseDecoder = deriveDecoder[DeleteDatabaseResponse]
+    callApi[DeleteDatabaseResponse](dbContext, HttpMethods.DELETE, s"/_api/database/$dbName")
+  }
 }

@@ -3,8 +3,10 @@ package io.tripod.oss.arangodb.driver.database
 import io.circe.Encoder
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.tripod.oss.arangodb.driver.{
+  CreateDatabaseRequest,
   ServerVersionRequest,
-  ServerVersionResponse
+  ServerVersionResponse,
+  UserCreateOptions
 }
 
 /**
@@ -13,14 +15,9 @@ import io.tripod.oss.arangodb.driver.{
 object CodecsImplicits {
   implicit val noneExtraEncoder = Encoder.encodeNone
 
-  implicit val databaseListResponseDecoder =
-    deriveDecoder[DatabaseListResponse]
-  implicit val currentDatabaseResponseResultDecoder =
-    deriveDecoder[CurrentDatabaseResponseResult]
-  implicit val currentDatabaseResponseDecoder =
-    deriveDecoder[CurrentDatabaseResponse]
-  implicit val ServerVersionDecoder = deriveDecoder[ServerVersionResponse]
-
-  implicit val ServerVersionRequestEncoder =
-    deriveEncoder[ServerVersionRequest]
+  implicit val databaseListResponseDecoder          = deriveDecoder[DatabaseListResponse]
+  implicit val currentDatabaseResponseResultDecoder = deriveDecoder[CurrentDatabaseResponseResult]
+  implicit val currentDatabaseResponseDecoder       = deriveDecoder[CurrentDatabaseResponse]
+  implicit val createDatabaseResponseDecoder        = deriveDecoder[CreateDatabaseResponse]
+  implicit val ServerVersionDecoder                 = deriveDecoder[ServerVersionResponse]
 }
