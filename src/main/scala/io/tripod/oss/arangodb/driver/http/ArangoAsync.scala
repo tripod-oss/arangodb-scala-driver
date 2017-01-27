@@ -1,4 +1,4 @@
-package io.tripod.oss.arangodb.driver
+package io.tripod.oss.arangodb.driver.http
 
 import akka.http.scaladsl.model.headers.CustomHeader
 

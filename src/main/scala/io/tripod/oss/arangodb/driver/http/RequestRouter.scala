@@ -1,14 +1,10 @@
-package io.tripod.oss.arangodb.driver
+package io.tripod.oss.arangodb.driver.http
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
-import akka.routing.{AddRoutee, RoundRobinRoutingLogic, Router}
+import akka.routing.{RoundRobinRoutingLogic, Router}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import io.tripod.oss.arangodb.driver.RequestRouter.{
-  AddEndpoint,
-  GetEndPoints,
-  RemoveEndpoint
-}
+import io.tripod.oss.arangodb.driver.http.RequestRouter.{AddEndpoint, GetEndPoints, RemoveEndpoint}
 
 import scala.collection.mutable
 
@@ -23,11 +19,9 @@ object RequestRouter {
   case object GetEndPoints
 }
 
-class RequestRouter(driverConfig: Config, userName: String, password: String)
-    extends Actor
-    with LazyLogging {
+class RequestRouter(driverConfig: Config, userName: String, password: String) extends Actor with LazyLogging {
   val endpointWorkers = new mutable.HashMap[String, ActorRef]
-  var router = Router(RoundRobinRoutingLogic())
+  var router          = Router(RoundRobinRoutingLogic())
 
   def receive = {
     case AddEndpoint(endpoint: String) =>
@@ -35,19 +29,15 @@ class RequestRouter(driverConfig: Config, userName: String, password: String)
         logger.warn(s"AddEndpoint: '$endpoint' already added")
       } else {
         val workerRef =
-          context.actorOf(
-            EndpointClientWorker
-              .props(endpoint, driverConfig, userName, password))
+          context.actorOf(EndpointClientWorker.props(endpoint, driverConfig, userName, password))
         endpointWorkers.put(endpoint, workerRef)
         context.watch(workerRef)
         router = router.addRoutee(workerRef)
       }
     case RemoveEndpoint(endpoint: String) =>
-      endpointWorkers
-        .get(endpoint)
-        .map(routee => router.removeRoutee(routee)) match {
+      endpointWorkers.get(endpoint).map(routee => router.removeRoutee(routee)) match {
         case Some(r) ⇒ router = r
-        case None ⇒ logger.warn(s"Endpoint '$endpoint' removal failure")
+        case None    ⇒ logger.warn(s"Endpoint '$endpoint' removal failure")
       }
       endpointWorkers.remove(endpoint)
     case GetEndPoints => sender() ! endpointWorkers.keySet.toList

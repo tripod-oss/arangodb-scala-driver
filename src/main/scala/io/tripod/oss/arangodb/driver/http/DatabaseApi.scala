@@ -1,16 +1,11 @@
-package io.tripod.oss.arangodb.driver.database
+package io.tripod.oss.arangodb.driver.http
 
-import akka.actor.ActorRef
 import akka.http.scaladsl.model.HttpMethods
 import io.circe.Encoder
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.tripod.oss.arangodb.driver._
-import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
+import io.tripod.oss.arangodb.driver.http.CodecsImplicits._
 
-import scala.concurrent.{Future, Promise}
-import io.tripod.oss.arangodb.driver.utils.FutureUtils._
-import io.circe._, io.circe.generic.semiauto._
-import CodecsImplicits._
+import scala.concurrent.Future
 
 trait DatabaseApi { self: ArangoDriver ⇒
 

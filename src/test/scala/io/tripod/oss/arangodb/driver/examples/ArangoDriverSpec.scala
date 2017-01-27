@@ -4,15 +4,11 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.{Decoder, Encoder, Json}
-import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
-import io.tripod.oss.arangodb.driver.{ApiError, ServerVersionResponse, UserCreateOptions}
-import io.tripod.oss.arangodb.driver.database.DatabaseApi
 import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import shapeless.Lazy
 
 import scala.concurrent.Future
-import io.tripod.oss.arangodb.driver.database.CodecsImplicits
+import io.tripod.oss.arangodb.driver.http.{ArangoDriver, CodecsImplicits, DatabaseApi, UserCreateOptions}
 
 /**
   * Created by nicolas.jouanin on 23/01/17.
@@ -29,7 +25,7 @@ class ArangoDriverSpec
   implicit val ec           = system.dispatcher
 
   "ArangodbDriver" should {
-    val driver = new ArangoDriver() with DatabaseApi
+    val driver = ArangoDriver()
     "get server version" in {
       val result = driver.getServerVersion(true).futureValue
       result.right.value.server should not be empty
@@ -88,6 +84,14 @@ class ArangoDriverSpec
       result.right.value.result shouldEqual true
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+
+    "create collection" in {
+      val result = driver.createCollection("testCollection").futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      result.right.value.name shouldEqual "testCollection"
       logger.debug(result.right.value.toString)
     }
   }

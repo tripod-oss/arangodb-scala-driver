@@ -1,8 +1,7 @@
 package io.tripod.oss.arangodb.driver.examples
 
 import com.typesafe.config.ConfigFactory
-import io.tripod.oss.arangodb.driver.database.DatabaseApi
-import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
+import io.tripod.oss.arangodb.driver.http.{ArangoDriver, DatabaseApi}
 
 /**
   * Created by nicolas.jouanin on 20/01/17.
@@ -10,9 +9,7 @@ import io.tripod.oss.arangodb.driver.database.driver.ArangoDriver
 object Basictest extends App {
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val driver =
-    new ArangoDriver(ConfigFactory.load(), Some("root"), Some("root"))
-    with DatabaseApi
+  val driver = ArangoDriver("root", "root", ConfigFactory.load())
   driver.addEndPoint("http://10.156.223.115:8529/")
   Thread.sleep(500)
   driver.getServerVersion(true).map(println)
