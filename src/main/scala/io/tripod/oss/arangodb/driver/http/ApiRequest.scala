@@ -9,22 +9,10 @@ case class UserCreateOptions[T](username: String,
                                 extra: Option[T] = None)
 case class CreateDatabaseRequest[T](name: String, users: Option[Seq[T]]) extends ApiRequest
 
-sealed trait CollectionType
-case object DocumentCollection extends CollectionType
-case object EdgeCollection     extends CollectionType
-
-sealed trait KeyType
-case object AutoIncrementKey extends KeyType
-case object TraditionalKey   extends KeyType
-
-case class CreateCollectionRequestKeyOptions(allowUsersKey: Option[Boolean] = None,
-                                             `type`: Option[KeyType] = None,
-                                             increment: Option[Int],
-                                             offset: Option[Int])
 case class CreateCollectionRequest(name: String,
                                    journalSize: Option[Int] = None,
                                    replicationFactor: Option[Int] = None,
-                                   keyOptions: Option[CreateCollectionRequestKeyOptions] = None,
+                                   keyOptions: Option[CollectionKeyOptions] = None,
                                    waitForSync: Option[Boolean] = None,
                                    doCompact: Option[Boolean] = None,
                                    isVolatile: Option[Boolean] = None,

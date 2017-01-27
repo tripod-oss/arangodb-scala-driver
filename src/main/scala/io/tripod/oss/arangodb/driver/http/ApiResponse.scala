@@ -72,3 +72,54 @@ case class GetCollectionResponse(id: String,
                                  code: Int)
     extends ApiResponse
     with ErrorResult
+
+case class GetCollectionPropertiesResponse(id: String,
+                                           name: String,
+                                           isSystem: Boolean,
+                                           doCompact: Boolean,
+                                           isVolatile: Boolean,
+                                           journalSize: Int,
+                                           keyOptions: CollectionKeyOptions,
+                                           waitForSync: Boolean,
+                                           indexBuckets: Int,
+                                           status: CollectionStatus,
+                                           `type`: CollectionType,
+                                           error: Boolean,
+                                           code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class GetCollectionCountResponse(id: String,
+                                      name: String,
+                                      isSystem: Boolean,
+                                      doCompact: Boolean,
+                                      isVolatile: Boolean,
+                                      journalSize: Int,
+                                      keyOptions: CollectionKeyOptions,
+                                      waitForSync: Boolean,
+                                      indexBuckets: Int,
+                                      count: Int,
+                                      status: CollectionStatus,
+                                      `type`: CollectionType,
+                                      error: Boolean,
+                                      code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class GetCollectionFiguresResponse(id: String,
+                                        name: String,
+                                        isSystem: Boolean,
+                                        doCompact: Boolean,
+                                        isVolatile: Boolean,
+                                        journalSize: Int,
+                                        keyOptions: CollectionKeyOptions,
+                                        waitForSync: Boolean,
+                                        indexBuckets: Int,
+                                        count: Int,
+                                        figures: CollectionFigure,
+                                        status: CollectionStatus,
+                                        `type`: CollectionType,
+                                        error: Boolean,
+                                        code: Int)
+    extends ApiResponse
+    with ErrorResult

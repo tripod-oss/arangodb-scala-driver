@@ -18,7 +18,7 @@ trait CollectionApi { self: ArangoDriver ⇒
   def createCollection(name: String,
                        journalSize: Option[Int] = None,
                        replicationFactor: Option[Int] = None,
-                       keyOptions: Option[CreateCollectionRequestKeyOptions] = None,
+                       keyOptions: Option[CollectionKeyOptions] = None,
                        waitForSync: Option[Boolean] = None,
                        doCompact: Option[Boolean] = None,
                        isVolatile: Option[Boolean] = None,
@@ -29,9 +29,9 @@ trait CollectionApi { self: ArangoDriver ⇒
                        indexBuckets: Option[Int] = None)(
       implicit dbContext: Option[DBContext]): Future[Either[ApiError, CreateCollectionResponse]] = {
 
-    implicit val createCollectionRequestKeyEncoder = deriveEncoder[CreateCollectionRequestKeyOptions]
-    implicit val createCollectionRequestEncoder    = deriveEncoder[CreateCollectionRequest]
-    implicit val createCollectionResponseDecoder   = deriveDecoder[CreateCollectionResponse]
+    implicit val collectionKeyOptionsEncoder     = deriveEncoder[CollectionKeyOptions]
+    implicit val createCollectionRequestEncoder  = deriveEncoder[CreateCollectionRequest]
+    implicit val createCollectionResponseDecoder = deriveDecoder[CreateCollectionResponse]
     val request = CreateCollectionRequest(name,
                                           journalSize,
                                           replicationFactor,
@@ -66,5 +66,26 @@ trait CollectionApi { self: ArangoDriver ⇒
       implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionResponse]] = {
     implicit val getCollectionResponseDecoder = deriveDecoder[GetCollectionResponse]
     callApi[GetCollectionResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name")
+  }
+
+  def getCollectionProperties(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionPropertiesResponse]] = {
+    implicit val collectionKeyOptionsEncoder            = deriveDecoder[CollectionKeyOptions]
+    implicit val getCollectionPropertiesResponseDecoder = deriveDecoder[GetCollectionPropertiesResponse]
+    callApi[GetCollectionPropertiesResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/properties")
+  }
+
+  def getCollectionCount(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionCountResponse]] = {
+    implicit val collectionKeyOptionsEncoder = deriveDecoder[CollectionKeyOptions]
+    implicit val responseDecoder             = deriveDecoder[GetCollectionCountResponse]
+    callApi[GetCollectionCountResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/count")
+  }
+
+  def getCollectionFigures(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionFiguresResponse]] = {
+    implicit val collectionFiguresEncoder = deriveDecoder[CollectionFigure]
+    implicit val responseDecoder          = deriveDecoder[GetCollectionFiguresResponse]
+    callApi[GetCollectionFiguresResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/figures")
   }
 }

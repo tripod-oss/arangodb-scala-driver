@@ -3,7 +3,7 @@ package io.tripod.oss.arangodb.driver.examples
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Encoder
 import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 
@@ -135,6 +135,48 @@ class ArangoDriverSpec
           case Right(_) =>
             driver.getCollection("testGetCollection").flatMap {
               case Right(_) => driver.dropCollection("testGetCollection")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "get collection properties" in {
+      val result = driver
+        .createCollection("testGetCollectionProperties")
+        .flatMap {
+          case Right(_) =>
+            driver.getCollectionProperties("testGetCollectionProperties").flatMap {
+              case Right(_) => driver.dropCollection("testGetCollectionProperties")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "get collection count" in {
+      val result = driver
+        .createCollection("testGetCollectionCount")
+        .flatMap {
+          case Right(_) =>
+            driver.getCollectionCount("testGetCollectionCount").flatMap {
+              case Right(_) => driver.dropCollection("testGetCollectionCount")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "get collection figures" in {
+      val result = driver
+        .createCollection("testGetCollectionFigures")
+        .flatMap {
+          case Right(_) =>
+            driver.getCollectionFigures("testGetCollectionFigures").flatMap {
+              case Right(_) => driver.dropCollection("testGetCollectionFigures")
             }
         }
         .futureValue
