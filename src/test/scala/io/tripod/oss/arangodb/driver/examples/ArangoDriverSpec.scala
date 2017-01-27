@@ -128,6 +128,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "get collection" in {
       val result = driver
         .createCollection("testGetCollection")
@@ -142,6 +143,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "get collection properties" in {
       val result = driver
         .createCollection("testGetCollectionProperties")
@@ -156,6 +158,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "get collection count" in {
       val result = driver
         .createCollection("testGetCollectionCount")
@@ -170,6 +173,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "get collection figures" in {
       val result = driver
         .createCollection("testGetCollectionFigures")
@@ -184,6 +188,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "get collection revision" in {
       val result = driver
         .createCollection("testGetCollectionRevision")
@@ -198,6 +203,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "get collection checksum" in {
       val result = driver
         .createCollection("testGetCollectionChecksum")
@@ -205,6 +211,43 @@ class ArangoDriverSpec
           case Right(_) =>
             driver.getCollectionChecksum("testGetCollectionChecksum").flatMap {
               case Right(_) => driver.dropCollection("testGetCollectionChecksum")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "get collections" in {
+      val result = driver.getCollections.futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "load / unload collection" in {
+      val result = driver
+        .createCollection("testCollectionLoadUnload")
+        .flatMap {
+          case Right(_) =>
+            driver.unloadCollection("testCollectionLoadUnload").flatMap {
+              case Right(_) =>
+                driver.loadCollection("testCollectionLoadUnload").flatMap {
+                  case Right(_) => driver.dropCollection("testCollectionLoadUnload")
+                }
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "change collection properties" in {
+      val result = driver
+        .createCollection("testChangeCollectionProperties")
+        .flatMap {
+          case Right(_) =>
+            driver.changeCollectionProperties("testChangeCollectionProperties", Some(true)).flatMap {
+              case Right(_) => driver.dropCollection("testChangeCollectionProperties")
             }
         }
         .futureValue

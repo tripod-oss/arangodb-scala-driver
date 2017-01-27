@@ -20,6 +20,7 @@ trait CodecsImplicits extends TimeInstances {
   implicit val journalFigureDecoder          = deriveDecoder[JournalFigure]
   implicit val revisionDecoder               = deriveDecoder[RevisionsFigure]
   implicit val collectionKeyDecoder          = deriveDecoder[CollectionKeyOptions]
+  implicit val collectionInfoDecoder         = deriveDecoder[CollectionInfo]
 
   implicit val collectionTypeEncoder: Encoder[CollectionType] = Encoder.encodeInt.contramap[CollectionType] {
     case DocumentCollection => 2

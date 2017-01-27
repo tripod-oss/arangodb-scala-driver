@@ -146,3 +146,43 @@ case class GetCollectionChecksumResponse(id: String,
                                          code: Int)
     extends ApiResponse
     with ErrorResult
+
+case class GetCollectionsResponse(result: Seq[CollectionInfo], error: Boolean, code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class LoadCollectionResponse(id: String,
+                                  name: String,
+                                  isSystem: Boolean,
+                                  status: CollectionStatus,
+                                  `type`: CollectionType,
+                                  count: Option[Int],
+                                  error: Boolean,
+                                  code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class UnloadCollectionResponse(id: String,
+                                    name: String,
+                                    isSystem: Boolean,
+                                    status: CollectionStatus,
+                                    `type`: CollectionType,
+                                    error: Boolean,
+                                    code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class ChangeCollectionPropertiesResponse(id: String,
+                                              name: String,
+                                              waitForSync: Boolean,
+                                              journalSize: Int,
+                                              status: CollectionStatus,
+                                              `type`: CollectionType,
+                                              isSystem: Boolean,
+                                              isVolatile: Boolean,
+                                              doCompact: Boolean,
+                                              keyOptions: CollectionKeyOptions,
+                                              error: Boolean,
+                                              code: Int)
+    extends ApiResponse
+    with ErrorResult

@@ -22,3 +22,5 @@ case class CreateCollectionRequest(name: String,
                                    `type`: Option[CollectionType] = None,
                                    indexBuckets: Option[Int] = None)
     extends ApiRequest
+
+case class ChangeCollectionPropertiesRequest(waitForSync: Option[Boolean], journalSize: Option[Int]) extends ApiRequest

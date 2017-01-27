@@ -38,3 +38,9 @@ case class CollectionFigure(datafiles: DataFilesFigure,
                             journals: JournalFigure,
                             lastTick: Int,
                             revisions: RevisionsFigure)
+
+case class CollectionInfo(id: String,
+                          name: String,
+                          isSystem: Boolean,
+                          status: CollectionStatus,
+                          `type`: CollectionType)

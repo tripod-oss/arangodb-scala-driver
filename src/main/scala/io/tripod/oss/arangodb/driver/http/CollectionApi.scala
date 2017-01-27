@@ -97,4 +97,34 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
     implicit val responseDecoder = deriveDecoder[GetCollectionChecksumResponse]
     callApi[GetCollectionChecksumResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/checksum")
   }
+
+  def getCollections(implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionsResponse]] = {
+    implicit val getCollectionResponseDecoder = deriveDecoder[GetCollectionsResponse]
+    callApi[GetCollectionsResponse](dbContext, HttpMethods.GET, "/_api/collection")
+  }
+
+  def loadCollection(name: String, count: Boolean = true)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, LoadCollectionResponse]] = {
+    implicit val responseDecoder = deriveDecoder[LoadCollectionResponse]
+    callApi[LoadCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/load")
+  }
+
+  def unloadCollection(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, UnloadCollectionResponse]] = {
+    implicit val responseDecoder = deriveDecoder[UnloadCollectionResponse]
+    callApi[UnloadCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/unload")
+  }
+
+  def changeCollectionProperties(name: String, waitForSync: Option[Boolean] = None, journalSize: Option[Int] = None)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, ChangeCollectionPropertiesResponse]] = {
+    implicit val responseDecoder = deriveDecoder[ChangeCollectionPropertiesResponse]
+    implicit val requestEncoder  = deriveEncoder[ChangeCollectionPropertiesRequest]
+
+    val request = ChangeCollectionPropertiesRequest(waitForSync, journalSize)
+    callApi[ChangeCollectionPropertiesRequest, ChangeCollectionPropertiesResponse](
+      dbContext,
+      HttpMethods.PUT,
+      s"/_api/collection/$name/properties",
+      request)
+  }
 }
