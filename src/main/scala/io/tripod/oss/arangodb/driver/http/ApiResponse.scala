@@ -123,3 +123,26 @@ case class GetCollectionFiguresResponse(id: String,
                                         code: Int)
     extends ApiResponse
     with ErrorResult
+
+case class GetCollectionRevisionResponse(id: String,
+                                         name: String,
+                                         isSystem: Boolean,
+                                         status: CollectionStatus,
+                                         `type`: CollectionType,
+                                         revision: Int,
+                                         error: Boolean,
+                                         code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class GetCollectionChecksumResponse(id: String,
+                                         name: String,
+                                         isSystem: Boolean,
+                                         status: CollectionStatus,
+                                         `type`: CollectionType,
+                                         checksum: String,
+                                         revision: String,
+                                         error: Boolean,
+                                         code: Int)
+    extends ApiResponse
+    with ErrorResult

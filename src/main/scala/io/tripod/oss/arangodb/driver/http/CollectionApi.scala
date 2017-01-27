@@ -85,4 +85,16 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
     implicit val responseDecoder          = deriveDecoder[GetCollectionFiguresResponse]
     callApi[GetCollectionFiguresResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/figures")
   }
+
+  def getCollectionRevision(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionRevisionResponse]] = {
+    implicit val responseDecoder = deriveDecoder[GetCollectionRevisionResponse]
+    callApi[GetCollectionRevisionResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/revision")
+  }
+
+  def getCollectionChecksum(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionChecksumResponse]] = {
+    implicit val responseDecoder = deriveDecoder[GetCollectionChecksumResponse]
+    callApi[GetCollectionChecksumResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/checksum")
+  }
 }

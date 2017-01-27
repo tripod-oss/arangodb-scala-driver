@@ -184,5 +184,34 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+    "get collection revision" in {
+      val result = driver
+        .createCollection("testGetCollectionRevision")
+        .flatMap {
+          case Right(_) =>
+            driver.getCollectionRevision("testGetCollectionRevision").flatMap {
+              case Right(_) => driver.dropCollection("testGetCollectionRevision")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "get collection checksum" in {
+      val result = driver
+        .createCollection("testGetCollectionChecksum")
+        .flatMap {
+          case Right(_) =>
+            driver.getCollectionChecksum("testGetCollectionChecksum").flatMap {
+              case Right(_) => driver.dropCollection("testGetCollectionChecksum")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+
   }
 }
