@@ -61,4 +61,10 @@ trait CollectionApi { self: ArangoDriver ⇒
     implicit val dropCollectionResponseDecoder = deriveDecoder[TruncateCollectionResponse]
     callApi[TruncateCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/truncate")
   }
+
+  def getCollection(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionResponse]] = {
+    implicit val getCollectionResponseDecoder = deriveDecoder[GetCollectionResponse]
+    callApi[GetCollectionResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name")
+  }
 }

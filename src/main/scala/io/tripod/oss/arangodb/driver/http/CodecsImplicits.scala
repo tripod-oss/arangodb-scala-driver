@@ -43,6 +43,7 @@ object CodecsImplicits {
     case Loaded                      => 3
     case InTheProcessOfBeingUnloaded => 4
     case Deleted                     => 5
+    case Loading                     => 6
   }
 
   implicit val collectionStatusDecoder: Decoder[CollectionStatus] = Decoder.decodeInt.emap[CollectionStatus] {
@@ -51,6 +52,7 @@ object CodecsImplicits {
     case 3 => Right(Loaded)
     case 4 => Right(InTheProcessOfBeingUnloaded)
     case 5 => Right(Deleted)
+    case 6 => Right(Loading)
     case _ => Left("CollectionStatus")
   }
 }

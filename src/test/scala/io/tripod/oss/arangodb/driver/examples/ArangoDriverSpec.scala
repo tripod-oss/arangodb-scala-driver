@@ -101,6 +101,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "create collection with options" in {
       val result = driver
         .createCollection("testCollectionWithOptions", waitForSync = Some(true))
@@ -112,6 +113,7 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+
     "truncate collection" in {
       val result = driver
         .createCollection("testTruncate")
@@ -119,6 +121,20 @@ class ArangoDriverSpec
           case Right(_) =>
             driver.truncateCollection("testTruncate").flatMap {
               case Right(_) => driver.dropCollection("testTruncate")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "get collection" in {
+      val result = driver
+        .createCollection("testGetCollection")
+        .flatMap {
+          case Right(_) =>
+            driver.getCollection("testGetCollection").flatMap {
+              case Right(_) => driver.dropCollection("testGetCollection")
             }
         }
         .futureValue

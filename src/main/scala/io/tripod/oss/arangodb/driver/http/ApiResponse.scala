@@ -32,11 +32,12 @@ case class CreateDatabaseResponse(result: Boolean, error: Boolean, code: Int) ex
 case class DeleteDatabaseResponse(result: Boolean, error: Boolean, code: Int) extends DatabaseApiResponse[Boolean]
 
 trait CollectionStatus
-case object Deleted                     extends CollectionStatus
-case object InTheProcessOfBeingUnloaded extends CollectionStatus
-case object Loaded                      extends CollectionStatus
-case object NewBornCollection           extends CollectionStatus
-case object Unloaded                    extends CollectionStatus
+case object NewBornCollection           extends CollectionStatus // 1
+case object Unloaded                    extends CollectionStatus // 2
+case object Loaded                      extends CollectionStatus // 3
+case object InTheProcessOfBeingUnloaded extends CollectionStatus // 4
+case object Deleted                     extends CollectionStatus // 5
+case object Loading                     extends CollectionStatus
 
 case class CreateCollectionResponse(id: String,
                                     name: String,
@@ -59,5 +60,15 @@ case class TruncateCollectionResponse(id: String,
                                       `type`: CollectionType,
                                       error: Boolean,
                                       code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class GetCollectionResponse(id: String,
+                                 name: String,
+                                 status: CollectionStatus,
+                                 `type`: CollectionType,
+                                 isSystem: Boolean,
+                                 error: Boolean,
+                                 code: Int)
     extends ApiResponse
     with ErrorResult
