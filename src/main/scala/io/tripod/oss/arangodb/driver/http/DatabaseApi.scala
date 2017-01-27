@@ -3,15 +3,15 @@ package io.tripod.oss.arangodb.driver.http
 import akka.http.scaladsl.model.HttpMethods
 import io.circe.Encoder
 import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.tripod.oss.arangodb.driver.http.CodecsImplicits._
 
 import scala.concurrent.Future
 
-trait DatabaseApi { self: ArangoDriver ⇒
+trait DatabaseApi extends CodecsImplicits { self: ArangoDriver ⇒
 
   def currentDatabase(
       implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, CurrentDatabaseResponse]] = {
-    implicit val responseDecoder = deriveDecoder[CurrentDatabaseResponse]
+    implicit val responseResultDecoder = deriveDecoder[CurrentDatabaseResponseResult]
+    implicit val responseDecoder       = deriveDecoder[CurrentDatabaseResponse]
     callApi[CurrentDatabaseResponse](dbContext, HttpMethods.GET, "/_api/database/current")
   }
 

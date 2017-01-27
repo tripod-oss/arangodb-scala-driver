@@ -2,16 +2,24 @@ package io.tripod.oss.arangodb.driver.http
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.deriveDecoder
+import io.circe.java8.time.TimeInstances
 
 /**
   * Created by nicolas.jouanin on 23/01/17.
   */
-object CodecsImplicits {
+trait CodecsImplicits extends TimeInstances {
   implicit val noneExtraEncoder = Encoder.encodeNone
 
   implicit val dataFilesFigureDecoder        = deriveDecoder[DataFilesFigure]
   implicit val compactionStatusFigureDecoder = deriveDecoder[CompactionStatusFigure]
   implicit val compactorsFigureDecoder       = deriveDecoder[CompactorsFigure]
+  implicit val deadFigureDecoder             = deriveDecoder[DeadFigure]
+  implicit val indexFigureDecoder            = deriveDecoder[IndexFigure]
+  implicit val readCacheFigureDecoder        = deriveDecoder[ReadCacheFigure]
+  implicit val aliveFigureDecoder            = deriveDecoder[AliveFigure]
+  implicit val journalFigureDecoder          = deriveDecoder[JournalFigure]
+  implicit val revisionDecoder               = deriveDecoder[RevisionsFigure]
+  implicit val collectionKeyDecoder          = deriveDecoder[CollectionKeyOptions]
 
   implicit val collectionTypeEncoder: Encoder[CollectionType] = Encoder.encodeInt.contramap[CollectionType] {
     case DocumentCollection => 2

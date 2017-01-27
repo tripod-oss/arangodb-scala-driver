@@ -10,7 +10,7 @@ sealed trait KeyType
 case object AutoIncrementKey extends KeyType
 case object TraditionalKey   extends KeyType
 
-case class CollectionKeyOptions(allowUsersKey: Option[Boolean] = None,
+case class CollectionKeyOptions(allowUserKeys: Option[Boolean] = None,
                                 `type`: Option[KeyType] = None,
                                 increment: Option[Int],
                                 offset: Option[Int])
@@ -27,14 +27,14 @@ case class RevisionsFigure(count: Int, size: Int)
 
 case class CollectionFigure(datafiles: DataFilesFigure,
                             uncollectedLogfileEntries: Int,
-                            compactionStatusFigure: CompactionStatusFigure,
+                            compactionStatus: CompactionStatusFigure,
                             compactors: CompactorsFigure,
                             dead: DeadFigure,
                             indexes: IndexFigure,
-                            readcache: ReadCacheFigure,
+                            readCache: ReadCacheFigure,
                             waitingFor: String,
                             alive: AliveFigure,
                             documentReferences: Int,
                             journals: JournalFigure,
-                            maxTick: Int,
+                            lastTick: Int,
                             revisions: RevisionsFigure)

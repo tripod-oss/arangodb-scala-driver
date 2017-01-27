@@ -7,7 +7,6 @@ import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import io.circe.{Decoder, Encoder}
 import RequestRouter.{AddEndpoint, GetEndPoints, RemoveEndpoint}
-import CodecsImplicits._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
@@ -18,7 +17,8 @@ import scala.concurrent.{Future, Promise}
 class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
                    user: Option[String] = None,
                    password: Option[String] = None)
-    extends MiscApi
+    extends CodecsImplicits
+    with MiscApi
     with DatabaseApi
     with CollectionApi {
 

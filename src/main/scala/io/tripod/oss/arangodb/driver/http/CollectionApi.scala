@@ -2,14 +2,13 @@ package io.tripod.oss.arangodb.driver.http
 
 import akka.http.scaladsl.model.HttpMethods
 import io.circe.generic.semiauto._
-import CodecsImplicits._
 
 import scala.concurrent.Future
 
 /**
   * Created by nicolas.jouanin on 27/01/17.
   */
-trait CollectionApi { self: ArangoDriver ⇒
+trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
   def createCollection(name: String)(
       implicit dbContext: Option[DBContext]): Future[Either[ApiError, CreateCollectionResponse]] = {
     createCollection(name, None, None, None, None, None, None, None, None, None, None, None)(dbContext)
@@ -70,15 +69,13 @@ trait CollectionApi { self: ArangoDriver ⇒
 
   def getCollectionProperties(name: String)(
       implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionPropertiesResponse]] = {
-    implicit val collectionKeyOptionsEncoder            = deriveDecoder[CollectionKeyOptions]
     implicit val getCollectionPropertiesResponseDecoder = deriveDecoder[GetCollectionPropertiesResponse]
     callApi[GetCollectionPropertiesResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/properties")
   }
 
   def getCollectionCount(name: String)(
       implicit dbContext: Option[DBContext]): Future[Either[ApiError, GetCollectionCountResponse]] = {
-    implicit val collectionKeyOptionsEncoder = deriveDecoder[CollectionKeyOptions]
-    implicit val responseDecoder             = deriveDecoder[GetCollectionCountResponse]
+    implicit val responseDecoder = deriveDecoder[GetCollectionCountResponse]
     callApi[GetCollectionCountResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/count")
   }
 
