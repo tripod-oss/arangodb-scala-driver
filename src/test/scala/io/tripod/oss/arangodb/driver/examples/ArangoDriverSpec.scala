@@ -8,7 +8,8 @@ import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 
 import scala.concurrent.Future
-import io.tripod.oss.arangodb.driver.http.{ArangoDriver, CodecsImplicits, DatabaseApi, UserCreateOptions}
+import io.tripod.oss.arangodb.driver.http._
+import io.tripod.oss.arangodb.driver._systemContext
 
 /**
   * Created by nicolas.jouanin on 23/01/17.
@@ -88,10 +89,41 @@ class ArangoDriverSpec
     }
 
     "create collection" in {
-      val result = driver.createCollection("testCollection").futureValue
+      //implicit val dbContext: Option[DBContext] = None
+
+      val result = driver
+        .createCollection("testCollection")
+        .flatMap {
+          case Right(_) => driver.dropCollection("testCollection")
+        }
+        .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      result.right.value.name shouldEqual "testCollection"
+      logger.debug(result.right.value.toString)
+    }
+    "create collection with options" in {
+      val result = driver
+        .createCollection("testCollectionWithOptions", waitForSync = Some(true))
+        .flatMap {
+          case Right(_) => driver.dropCollection("testCollectionWithOptions")
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "truncate collection" in {
+      val result = driver
+        .createCollection("testTruncate")
+        .flatMap {
+          case Right(_) =>
+            driver.truncateCollection("testTruncate").flatMap {
+              case Right(_) => driver.dropCollection("testTruncate")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
   }

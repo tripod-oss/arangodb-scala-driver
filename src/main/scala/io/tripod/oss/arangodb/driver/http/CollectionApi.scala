@@ -10,6 +10,11 @@ import scala.concurrent.Future
   * Created by nicolas.jouanin on 27/01/17.
   */
 trait CollectionApi { self: ArangoDriver ⇒
+  def createCollection(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, CreateCollectionResponse]] = {
+    createCollection(name, None, None, None, None, None, None, None, None, None, None, None)(dbContext)
+  }
+
   def createCollection(name: String,
                        journalSize: Option[Int] = None,
                        replicationFactor: Option[Int] = None,
@@ -22,7 +27,7 @@ trait CollectionApi { self: ArangoDriver ⇒
                        isSystem: Option[Boolean] = None,
                        `type`: Option[CollectionType] = None,
                        indexBuckets: Option[Int] = None)(
-      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, CreateCollectionResponse]] = {
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, CreateCollectionResponse]] = {
 
     implicit val createCollectionRequestKeyEncoder = deriveEncoder[CreateCollectionRequestKeyOptions]
     implicit val createCollectionRequestEncoder    = deriveEncoder[CreateCollectionRequest]
@@ -45,4 +50,15 @@ trait CollectionApi { self: ArangoDriver ⇒
                                                                request)
   }
 
+  def dropCollection(name: String, isSystem: Boolean = false)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, DropCollectionResponse]] = {
+    implicit val dropCollectionResponseDecoder = deriveDecoder[DropCollectionResponse]
+    callApi[DropCollectionResponse](dbContext, HttpMethods.DELETE, s"/_api/collection/$name?isSystem=$isSystem")
+  }
+
+  def truncateCollection(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, TruncateCollectionResponse]] = {
+    implicit val dropCollectionResponseDecoder = deriveDecoder[TruncateCollectionResponse]
+    callApi[TruncateCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/truncate")
+  }
 }

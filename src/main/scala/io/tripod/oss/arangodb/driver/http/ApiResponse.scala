@@ -49,3 +49,15 @@ case class CreateCollectionResponse(id: String,
                                     code: Int)
     extends ApiResponse
     with ErrorResult
+
+case class DropCollectionResponse(id: String, error: Boolean, code: Int) extends ApiResponse with ErrorResult
+
+case class TruncateCollectionResponse(id: String,
+                                      name: String,
+                                      isSystem: Boolean,
+                                      status: CollectionStatus,
+                                      `type`: CollectionType,
+                                      error: Boolean,
+                                      code: Int)
+    extends ApiResponse
+    with ErrorResult
