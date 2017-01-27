@@ -9,11 +9,9 @@ import io.circe.generic.semiauto.deriveDecoder
 object CodecsImplicits {
   implicit val noneExtraEncoder = Encoder.encodeNone
 
-  implicit val databaseListResponseDecoder          = deriveDecoder[DatabaseListResponse]
-  implicit val currentDatabaseResponseResultDecoder = deriveDecoder[CurrentDatabaseResponseResult]
-  implicit val currentDatabaseResponseDecoder       = deriveDecoder[CurrentDatabaseResponse]
-  implicit val createDatabaseResponseDecoder        = deriveDecoder[CreateDatabaseResponse]
-  implicit val ServerVersionDecoder                 = deriveDecoder[ServerVersionResponse]
+  implicit val dataFilesFigureDecoder        = deriveDecoder[DataFilesFigure]
+  implicit val compactionStatusFigureDecoder = deriveDecoder[CompactionStatusFigure]
+  implicit val compactorsFigureDecoder       = deriveDecoder[CompactorsFigure]
 
   implicit val collectionTypeEncoder: Encoder[CollectionType] = Encoder.encodeInt.contramap[CollectionType] {
     case DocumentCollection => 2

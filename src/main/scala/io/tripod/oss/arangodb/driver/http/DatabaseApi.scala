@@ -11,14 +11,17 @@ trait DatabaseApi { self: ArangoDriver ⇒
 
   def currentDatabase(
       implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, CurrentDatabaseResponse]] = {
+    implicit val responseDecoder = deriveDecoder[CurrentDatabaseResponse]
     callApi[CurrentDatabaseResponse](dbContext, HttpMethods.GET, "/_api/database/current")
   }
 
   def userDatabase(implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, DatabaseListResponse]] = {
+    implicit val responseDecoder = deriveDecoder[DatabaseListResponse]
     callApi[DatabaseListResponse](dbContext, HttpMethods.GET, "/_api/database/user")
   }
 
   def databaseList(implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, DatabaseListResponse]] = {
+    implicit val responseDecoder = deriveDecoder[DatabaseListResponse]
     callApi[DatabaseListResponse](dbContext, HttpMethods.GET, "/_api/database")
   }
 
@@ -30,7 +33,7 @@ trait DatabaseApi { self: ArangoDriver ⇒
     implicit val userCreateOptionsEncoder     = deriveEncoder[UserCreateOptions[T]]
     implicit val createDatabaseRequestEncoder = deriveEncoder[CreateDatabaseRequest[UserCreateOptions[T]]]
     implicit val extraEncoder                 = optionsEncoder
-
+    implicit val responseDecoder              = deriveDecoder[CreateDatabaseResponse]
     callApi[CreateDatabaseRequest[UserCreateOptions[T]], CreateDatabaseResponse](dbContext,
                                                                                  HttpMethods.POST,
                                                                                  "/_api/database",
