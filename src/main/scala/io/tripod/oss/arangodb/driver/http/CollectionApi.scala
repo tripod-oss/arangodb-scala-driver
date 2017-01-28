@@ -2,6 +2,8 @@ package io.tripod.oss.arangodb.driver.http
 
 import akka.http.scaladsl.model.HttpMethods
 import io.circe.generic.semiauto._
+import io.tripod.oss.arangodb.driver.{ApiError, ArangoDriver}
+import io.tripod.oss.arangodb.driver.entities.CollectionType
 
 import scala.concurrent.Future
 

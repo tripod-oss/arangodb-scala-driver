@@ -1,5 +1,7 @@
 package io.tripod.oss.arangodb.driver.http
 
+import io.tripod.oss.arangodb.driver.entities.CollectionType
+
 sealed trait ApiRequest
 
 case class ServerVersionRequest(details: Boolean) extends ApiRequest

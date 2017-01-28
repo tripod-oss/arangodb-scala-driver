@@ -1,12 +1,13 @@
-package io.tripod.oss.arangodb.driver.http
+package io.tripod.oss.arangodb.driver
 
 import akka.actor.{ActorSystem, Props}
-import akka.http.scaladsl.model.{HttpMethod, HttpMethods}
+import akka.http.scaladsl.model.{HttpHeader, HttpMethod}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import io.circe.{Decoder, Encoder}
-import RequestRouter.{AddEndpoint, GetEndPoints, RemoveEndpoint}
+import io.tripod.oss.arangodb.driver.http.RequestRouter.{AddEndpoint, GetEndPoints, RemoveEndpoint}
+import io.tripod.oss.arangodb.driver.http._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
@@ -18,9 +19,10 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
                    user: Option[String] = None,
                    password: Option[String] = None)
     extends CodecsImplicits
-    with MiscApi
+    with AdminApi
     with DatabaseApi
-    with CollectionApi {
+    with CollectionApi
+    with DocumentApi {
 
   private val config = {
     val internalConfig =
@@ -37,7 +39,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   implicit val ec      = system.dispatcher
   implicit val timeout = Timeout(5 seconds)
 
-  private[http] val router =
+  private val router =
     system.actorOf(Props(new RequestRouter(config, _userName, _password)), "requestRouter")
 
   // Auto add endpoints from configuration
@@ -54,14 +56,24 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
 
   def close = system.terminate()
 
-  def callApi[R <: ApiResponse](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
+  private[driver] def callApi[R <: ApiResponse](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
       implicit responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
     val responsePromise = Promise[Either[ApiError, R]]
-    router ! ApiCall(dbContext, apiMethod, apiUri, None, None, responseDecoder, responsePromise)
+    router ! ApiCall(dbContext, apiMethod, apiUri, List.empty, None, None, responseDecoder, responsePromise)
     responsePromise.future
   }
 
-  def callApi[Q <: ApiRequest, R <: ApiResponse](
+  private[driver] def callApi[R <: ApiResponse](
+      dbContext: Option[DBContext],
+      apiMethod: HttpMethod,
+      apiUri: String,
+      apiHeaders: List[HttpHeader])(implicit responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
+    val responsePromise = Promise[Either[ApiError, R]]
+    router ! ApiCall(dbContext, apiMethod, apiUri, apiHeaders, None, None, responseDecoder, responsePromise)
+    responsePromise.future
+  }
+
+  private[driver] def callApi[Q <: ApiRequest, R <: ApiResponse](
       dbContext: Option[DBContext],
       apiMethod: HttpMethod,
       apiUri: String,
@@ -70,6 +82,26 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     router ! ApiCall(dbContext,
                      apiMethod,
                      apiUri,
+                     List.empty,
+                     Some(request),
+                     Some(requestEncoder),
+                     responseDecoder,
+                     responsePromise)
+    responsePromise.future
+  }
+
+  private[driver] def callApi[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContext],
+                                                                 apiMethod: HttpMethod,
+                                                                 apiUri: String,
+                                                                 request: Q,
+                                                                 apiHeaders: List[HttpHeader])(
+      implicit requestEncoder: Encoder[Q],
+      responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
+    val responsePromise = Promise[Either[ApiError, R]]
+    router ! ApiCall(dbContext,
+                     apiMethod,
+                     apiUri,
+                     apiHeaders,
                      Some(request),
                      Some(requestEncoder),
                      responseDecoder,

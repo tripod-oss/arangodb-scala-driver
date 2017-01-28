@@ -15,6 +15,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
+import io.tripod.oss.arangodb.driver.ApiError
 import io.tripod.oss.arangodb.driver.http.EndpointClientWorker.{Authenticated, Enqueue}
 
 import scala.concurrent.duration._
@@ -26,6 +27,7 @@ case class DBContext(name: String)
 case class ApiCall[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContext],
                                                       apiMethod: HttpMethod,
                                                       apiUri: String,
+                                                      apiHeaders: List[HttpHeader] = List.empty,
                                                       request: Option[Q],
                                                       encoder: Option[Encoder[Q]],
                                                       decoder: Decoder[R],
@@ -118,9 +120,10 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     }
     val requestFuture = requestEntity match {
       case Some(entityFuture) ⇒
-        entityFuture.map(entity ⇒ buildHttpRequest(apiCall.apiMethod, apiCall.apiUri).withEntity(entity))
+        entityFuture.map(entity ⇒
+          buildHttpRequest(apiCall.apiMethod, apiCall.apiUri, apiCall.apiHeaders).withEntity(entity))
       case None ⇒
-        Future.successful(buildHttpRequest(apiCall.apiMethod, apiCall.apiUri))
+        Future.successful(buildHttpRequest(apiCall.apiMethod, apiCall.apiUri, apiCall.apiHeaders))
     }
     requestFuture.map(httpRequest ⇒ self ! Enqueue(httpRequest, apiCall))
   }
@@ -145,10 +148,10 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     }
   }
 
-  def buildHttpRequest(method: HttpMethod, uri: String): HttpRequest = {
+  def buildHttpRequest(method: HttpMethod, uri: String, headers: List[HttpHeader] = List.empty): HttpRequest = {
     val request = HttpRequest(method, s"$endPointRoot$uri")
     if (jwtToken.isDefined)
-      request.withHeaders(List(Authorization(GenericHttpCredentials("bearer", jwtToken.get))))
+      request.withHeaders(List(Authorization(GenericHttpCredentials("bearer", jwtToken.get))) ++ headers)
     else
       request
   }

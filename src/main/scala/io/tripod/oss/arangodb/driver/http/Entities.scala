@@ -2,13 +2,7 @@ package io.tripod.oss.arangodb.driver.http
 
 import java.time.Instant
 
-sealed trait CollectionType
-case object DocumentCollection extends CollectionType
-case object EdgeCollection     extends CollectionType
-
-sealed trait KeyType
-case object AutoIncrementKey extends KeyType
-case object TraditionalKey   extends KeyType
+import io.tripod.oss.arangodb.driver.entities.{CollectionStatus, CollectionType, KeyType}
 
 case class CollectionKeyOptions(allowUserKeys: Option[Boolean] = None,
                                 `type`: Option[KeyType] = None,

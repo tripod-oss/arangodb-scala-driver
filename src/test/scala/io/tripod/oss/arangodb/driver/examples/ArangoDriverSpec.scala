@@ -9,7 +9,7 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 
 import scala.concurrent.Future
 import io.tripod.oss.arangodb.driver.http._
-import io.tripod.oss.arangodb.driver._systemContext
+import io.tripod.oss.arangodb.driver.{ArangoDriver, _systemContext}
 
 /**
   * Created by nicolas.jouanin on 23/01/17.
@@ -58,7 +58,7 @@ class ArangoDriverSpec
     "create database" in {
       implicit val noneExtraEncoder = Encoder.encodeNone
       val result                    = driver.createDatabase("testDB").futureValue
-      result.right.value shouldEqual true
+      result.right.value.result shouldEqual true
       logger.debug(result.right.value.toString)
       driver.removeDatabase("testDB").futureValue
     }
@@ -69,7 +69,7 @@ class ArangoDriverSpec
       )
       val result =
         driver.createDatabase("testDBWithExtra", Some(users)).futureValue
-      result.right.value shouldEqual true
+      result.right.value.result shouldEqual true
       logger.debug(result.right.value.toString)
       driver.removeDatabase("testDBWithExtra").futureValue
     }
@@ -78,8 +78,8 @@ class ArangoDriverSpec
       val result = driver
         .createDatabase("removeDB")
         .flatMap {
-          case Right(true) => driver.removeDatabase("removeDB")
-          case Left(x)     => Future.successful(Left(x))
+          case Right(_) => driver.removeDatabase("removeDB")
+          case Left(x)  => Future.successful(Left(x))
         }
         .futureValue
       result.right.value.result shouldEqual true

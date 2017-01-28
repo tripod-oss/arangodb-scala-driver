@@ -1,7 +1,8 @@
 package io.tripod.oss.arangodb.driver.examples
 
 import com.typesafe.config.ConfigFactory
-import io.tripod.oss.arangodb.driver.http.{ArangoDriver, DatabaseApi}
+import io.tripod.oss.arangodb.driver.ArangoDriver
+import io.tripod.oss.arangodb.driver.http.DatabaseApi
 
 /**
   * Created by nicolas.jouanin on 20/01/17.

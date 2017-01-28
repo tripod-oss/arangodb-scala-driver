@@ -1,14 +1,8 @@
 package io.tripod.oss.arangodb.driver.http
 
-trait ApiResponse
+import io.tripod.oss.arangodb.driver.entities.{CollectionStatus, CollectionType}
 
-case class ApiError(errorCode: Int = 0, errorMessage: String = "", errorBody: String = "")
-case class ServerVersionResponse(server: String,
-                                 version: String,
-                                 license: String,
-                                 details: Option[Map[String, String]])
-    extends ApiResponse
-case class AuthResponse(jwt: String, must_change_password: Boolean) extends ApiResponse
+trait ApiResponse
 
 trait ErrorResult {
   def error: Boolean
@@ -18,6 +12,20 @@ trait ErrorResult {
 trait DatabaseApiResponse[T] extends ApiResponse with ErrorResult {
   def result: T
 }
+
+trait DocumentApiResponse extends ApiResponse {
+  val _key: String
+  val _id: String
+  val _ref: String
+}
+
+case class ServerVersionResponse(server: String,
+                                 version: String,
+                                 license: String,
+                                 details: Option[Map[String, String]])
+    extends ApiResponse
+case class TargetVersionResponse(version: String, error: Boolean, code: Int) extends ApiResponse
+case class AuthResponse(jwt: String, must_change_password: Boolean)          extends ApiResponse
 
 case class CurrentDatabaseResponseResult(name: String, id: String, path: String, isSystem: Boolean)
 
@@ -30,14 +38,6 @@ case class DatabaseListResponse(result: Seq[String], error: Boolean, code: Int)
 case class CreateDatabaseResponse(result: Boolean, error: Boolean, code: Int) extends DatabaseApiResponse[Boolean]
 
 case class DeleteDatabaseResponse(result: Boolean, error: Boolean, code: Int) extends DatabaseApiResponse[Boolean]
-
-trait CollectionStatus
-case object NewBornCollection           extends CollectionStatus // 1
-case object Unloaded                    extends CollectionStatus // 2
-case object Loaded                      extends CollectionStatus // 3
-case object InTheProcessOfBeingUnloaded extends CollectionStatus // 4
-case object Deleted                     extends CollectionStatus // 5
-case object Loading                     extends CollectionStatus
 
 case class CreateCollectionResponse(id: String,
                                     name: String,

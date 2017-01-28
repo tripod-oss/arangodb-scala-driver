@@ -9,6 +9,7 @@
 `arangodb-scala-driver` implements [Arangodb 3.1 HTTP API specifications](https://docs.arangodb.com/3.1/HTTP/index.html). In details, `arangodb-scala-driver` provides implementation calls for the following API:
 * Administration :
   * `GET` `/_admin/database/target-version`
+  * `GET` `/_api/version`
 * Database:
   * `GET` `/_api/database`
   * `POST` `/_api/database`
