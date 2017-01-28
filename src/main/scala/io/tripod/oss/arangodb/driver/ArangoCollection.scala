@@ -50,12 +50,32 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
     }
   }
 
-  def load: Future[Either[ApiError, CollectionInfo]]     = ???
-  def unload: Future[Either[ApiError, CollectionInfo]]   = ???
-  def truncate: Future[Either[ApiError, CollectionInfo]] = ???
-  def drop: Future[Either[ApiError, Unit]]               = ???
+  def load: Future[Either[ApiError, CollectionStatus]] = {
+    driver.loadCollection(name).map {
+      case Right(response) ⇒ Right(response.status)
+      case Left(error)     ⇒ Left(error)
+    }
+  }
+  def unload: Future[Either[ApiError, CollectionStatus]] = {
+    driver.unloadCollection(name).map {
+      case Right(response) ⇒ Right(response.status)
+      case Left(error)     ⇒ Left(error)
+    }
+  }
+  def truncate: Future[Either[ApiError, Unit]] = {
+    driver.truncateCollection(name).map {
+      case Right(_)    ⇒ Right(())
+      case Left(error) ⇒ Left(error)
+    }
+  }
+  def drop: Future[Either[ApiError, Unit]] = {
+    driver.dropCollection(name).map {
+      case Right(_)    ⇒ Right(())
+      case Left(error) ⇒ Left(error)
+    }
+  }
 }
 
 object ArangoCollection {
-  def apply(db: ArangoDatabase, name: String) = new ArangoCollection(db, name)
+  def apply(db: ArangoDatabase, name: String)(implicit driver: ArangoDriver) = new ArangoCollection(db, name)
 }
