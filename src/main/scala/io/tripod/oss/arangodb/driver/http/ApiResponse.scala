@@ -186,3 +186,16 @@ case class ChangeCollectionPropertiesResponse(id: String,
                                               code: Int)
     extends ApiResponse
     with ErrorResult
+
+case class RenameCollectionResponse(id: String,
+                                    name: String,
+                                    isSystem: Boolean,
+                                    status: CollectionStatus,
+                                    `type`: CollectionType,
+                                    error: Boolean,
+                                    code: Int)
+    extends ApiResponse
+    with ErrorResult
+
+case class RotateCollectionJournalResponse(result: Boolean, error: Boolean, code: Int)
+    extends DatabaseApiResponse[Boolean]

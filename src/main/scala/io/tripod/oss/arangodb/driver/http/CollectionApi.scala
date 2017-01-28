@@ -127,4 +127,20 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
       s"/_api/collection/$name/properties",
       request)
   }
+
+  def renameCollection(oldName: String, newName: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, RenameCollectionResponse]] = {
+    implicit val requestEncoder  = deriveEncoder[RenameCollectionRequest]
+    implicit val responseDecoder = deriveDecoder[RenameCollectionResponse]
+    callApi[RenameCollectionRequest, RenameCollectionResponse](dbContext,
+                                                               HttpMethods.PUT,
+                                                               s"/_api/collection/$oldName/rename",
+                                                               RenameCollectionRequest(newName))
+  }
+
+  def rotateCollectionJournal(name: String)(
+      implicit dbContext: Option[DBContext]): Future[Either[ApiError, RotateCollectionJournalResponse]] = {
+    implicit val responseDecoder = deriveDecoder[RotateCollectionJournalResponse]
+    callApi[RotateCollectionJournalResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/rotate")
+  }
 }

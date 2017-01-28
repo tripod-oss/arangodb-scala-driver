@@ -255,6 +255,34 @@ class ArangoDriverSpec
       result.right.value.code shouldEqual 200
       logger.debug(result.right.value.toString)
     }
+    "rename collection properties" in {
+      val result = driver
+        .createCollection("testRenameCollection")
+        .flatMap {
+          case Right(_) =>
+            driver.renameCollection("testRenameCollection", "newCollectionName").flatMap {
+              case Right(_) => driver.dropCollection("newCollectionName")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
+    "rotate collection journal" in {
+      val result = driver
+        .createCollection("testCollectionRotate")
+        .flatMap {
+          case Right(_) =>
+            driver.rotateCollectionJournal("testCollectionRotate").flatMap {
+              case _ => driver.dropCollection("testCollectionRotate")
+            }
+        }
+        .futureValue
+      result.right.value.error shouldEqual false
+      result.right.value.code shouldEqual 200
+      logger.debug(result.right.value.toString)
+    }
 
   }
 }
