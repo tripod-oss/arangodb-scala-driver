@@ -17,81 +17,47 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
   implicit val dbContext = db.dbContext
   implicit val ec        = driver.ec
 
-  def count: Future[Either[ApiError, Int]] = {
-    driver.getCollectionCount(name).map {
-      case Right(response) ⇒ Right(response.code)
-      case Left(error)     ⇒ Left(error)
+  def count: Future[Int] = driver.getCollectionCount(name).map(_.count)
+
+  def changeProperty(waitForSync: Option[Boolean] = None, journalSize: Option[Int]): Future[CollectionInfo] = {
+    driver.changeCollectionProperties(name, waitForSync, journalSize).map { response ⇒
+      CollectionInfo(id = response.id,
+                     name = response.name,
+                     waitForSync = response.waitForSync,
+                     journalSize = response.journalSize,
+                     isVolatile = response.isVolatile,
+                     isSystem = response.isSystem,
+                     status = response.status,
+                     `type` = response.`type`)
     }
   }
 
-  def changeProperty(waitForSync: Option[Boolean] = None,
-                     journalSize: Option[Int]): Future[Either[ApiError, CollectionInfo]] = {
-    driver.changeCollectionProperties(name, waitForSync, journalSize).map {
-      case Right(response) ⇒
-        Right(
-          CollectionInfo(
-            id = response.id,
-            name = response.name,
-            waitForSync = response.waitForSync,
-            journalSize = response.journalSize,
-            isVolatile = response.isVolatile,
-            isSystem = response.isSystem,
-            status = response.status,
-            `type` = response.`type`
-          ))
-      case Left(error) ⇒ Left(error)
+  def info: Future[CollectionInfo] = {
+    driver.getCollectionProperties(name).map { response ⇒
+      CollectionInfo(
+        id = response.id,
+        name = response.name,
+        waitForSync = response.waitForSync,
+        journalSize = response.journalSize,
+        isVolatile = response.isVolatile,
+        isSystem = response.isSystem,
+        status = response.status,
+        `type` = response.`type`
+      )
     }
   }
 
-  def info: Future[Either[ApiError, CollectionInfo]] = {
-    driver.getCollectionProperties(name).map {
-      case Right(response) ⇒
-        Right(
-          CollectionInfo(
-            id = response.id,
-            name = response.name,
-            waitForSync = response.waitForSync,
-            journalSize = response.journalSize,
-            isVolatile = response.isVolatile,
-            isSystem = response.isSystem,
-            status = response.status,
-            `type` = response.`type`
-          ))
-      case Left(error) ⇒ Left(error)
-    }
+  def rename(newName: String): Future[ArangoCollection] = {
+    driver.renameCollection(name, newName).map(response ⇒ ArangoCollection(db, response.name))
   }
 
-  def rename(newName: String): Future[Either[ApiError, ArangoCollection]] = {
-    driver.renameCollection(name, newName).map {
-      case Right(response) ⇒ Right(ArangoCollection(db, response.name))
-      case Left(error)     ⇒ Left(error)
-    }
-  }
+  def load: Future[CollectionStatus] = driver.loadCollection(name).map(_.status)
 
-  def load: Future[Either[ApiError, CollectionStatus]] = {
-    driver.loadCollection(name).map {
-      case Right(response) ⇒ Right(response.status)
-      case Left(error)     ⇒ Left(error)
-    }
-  }
-  def unload: Future[Either[ApiError, CollectionStatus]] = {
-    driver.unloadCollection(name).map {
-      case Right(response) ⇒ Right(response.status)
-      case Left(error)     ⇒ Left(error)
-    }
-  }
-  def truncate: Future[Either[ApiError, Unit]] = {
-    driver.truncateCollection(name).map {
-      case Right(_)    ⇒ Right(())
-      case Left(error) ⇒ Left(error)
-    }
-  }
-  def drop: Future[Either[ApiError, Unit]] = {
-    driver.dropCollection(name).map {
-      case Right(_)    ⇒ Right(())
-      case Left(error) ⇒ Left(error)
-    }
-  }
+  def unload: Future[CollectionStatus] = driver.unloadCollection(name).map(_.status)
+
+  def truncate: Future[Unit] = driver.truncateCollection(name).map(_ ⇒ ())
+
+  def drop: Future[Unit] = driver.dropCollection(name).map(_ ⇒ ())
 }
 
 object ArangoCollection {

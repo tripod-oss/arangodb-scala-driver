@@ -23,7 +23,7 @@ class ArangoDatabase(dbName: String)(implicit val driver: ArangoDriver) {
                        numberOfShards: Option[Int] = None,
                        isSystem: Option[Boolean] = None,
                        `type`: Option[CollectionType] = None,
-                       indexBuckets: Option[Int] = None): Future[Either[ApiError, ArangoCollection]] = {
+                       indexBuckets: Option[Int] = None): Future[ArangoCollection] = {
     driver
       .createCollection(name,
                         journalSize,
@@ -37,46 +37,29 @@ class ArangoDatabase(dbName: String)(implicit val driver: ArangoDriver) {
                         isSystem,
                         `type`,
                         indexBuckets)
-      .map {
-        case Right(response) ⇒ Right(ArangoCollection(this, response.name))
-        case Left(apiError)  ⇒ Left(apiError)
-      }
+      .map(response ⇒ ArangoCollection(this, response.name))
   }
 
-  def collection(name: String): Future[Either[ApiError, ArangoCollection]] = {
-    driver.getCollection(name).map {
-      case Right(response) ⇒ Right(ArangoCollection(this, response.name))
-      case Left(apiError)  ⇒ Left(apiError)
-    }
+  def collection(name: String): Future[ArangoCollection] = {
+    driver.getCollection(name).map(response ⇒ ArangoCollection(this, response.name))
   }
 
-  def collections: Future[Either[ApiError, Seq[ArangoCollection]]] = {
-    driver.getCollections.map {
-      case Right(response) ⇒ Right(response.result.map(collection ⇒ ArangoCollection(this, collection.name)))
-      case Left(apiError)  ⇒ Left(apiError)
-    }
+  def collections: Future[Seq[ArangoCollection]] = {
+    driver.getCollections.map(response ⇒ response.result.map(collection ⇒ ArangoCollection(this, collection.name)))
   }
 
-  def info: Future[Either[ApiError, DatabaseInfo]] = {
-    driver.currentDatabase.map {
-      case Right(response) ⇒
-        Right(
-          DatabaseInfo(
-            name = response.result.name,
-            id = response.result.id,
-            path = response.result.path,
-            isSystem = response.result.isSystem
-          ))
-      case Left(apiError) ⇒ Left(apiError)
-    }
+  def info: Future[DatabaseInfo] = {
+    driver.currentDatabase.map(
+      response ⇒
+        DatabaseInfo(
+          name = response.result.name,
+          id = response.result.id,
+          path = response.result.path,
+          isSystem = response.result.isSystem
+      ))
   }
 
-  def drop = {
-    driver.removeDatabase(dbName).map {
-      case Right(response) ⇒ Right(response.result)
-      case Left(apiError)  ⇒ Left(apiError)
-    }
-  }
+  def drop: Future[Unit] = driver.removeDatabase(dbName).map(_ ⇒ ())
 }
 
 object ArangoDatabase {
@@ -86,11 +69,8 @@ object ArangoDatabase {
 
   def create[T](dbName: String, options: Option[Seq[UserCreateOptions[T]]] = None)(
       implicit driver: ArangoDriver,
-      extraEncoder: Encoder[T]): Future[Either[ApiError, ArangoDatabase]] = {
+      extraEncoder: Encoder[T]): Future[ArangoDatabase] = {
     implicit val ec = driver.ec
-    driver.createDatabase(dbName, options).map {
-      case Right(_)    ⇒ Right(ArangoDatabase(dbName)(driver))
-      case Left(error) ⇒ Left(error)
-    }
+    driver.createDatabase(dbName, options).map(_ ⇒ ArangoDatabase(dbName)(driver))
   }
 }

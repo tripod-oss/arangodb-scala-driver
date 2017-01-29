@@ -20,32 +20,32 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
     val driver = ArangoDriver()
     "get server version" in {
       val result = driver.getServerVersion(true).futureValue
-      result.right.value.server should not be empty
-      result.right.value.version should not be empty
-      result.right.value.license should not be empty
+      result.server should not be empty
+      result.version should not be empty
+      result.license should not be empty
     }
 
     "get user database list" in {
       val result = driver.userDatabase.futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.result should not be empty
+      result.error shouldEqual false
+      result.result should not be empty
     }
 
     "get current database" in {
       val result = driver.currentDatabase.futureValue
-      result.right.value.error shouldEqual false
+      result.error shouldEqual false
     }
 
     "get database list" in {
       val result = driver.databaseList.futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.result should not be empty
+      result.error shouldEqual false
+      result.result should not be empty
     }
 
     "create database" in {
       implicit val noneExtraEncoder = Encoder.encodeNone
       val result                    = driver.createDatabase("testDB").futureValue
-      result.right.value.result shouldEqual true
+      result.result shouldEqual true
       driver.removeDatabase("testDB").futureValue
     }
 
@@ -55,201 +55,188 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
       )
       val result =
         driver.createDatabase("testDBWithExtra", Some(users)).futureValue
-      result.right.value.result shouldEqual true
+      result.result shouldEqual true
       driver.removeDatabase("testDBWithExtra").futureValue
     }
 
     "remove database" in {
-      val result = driver
-        .createDatabase("removeDB")
-        .flatMap {
-          case Right(_) => driver.removeDatabase("removeDB")
-          case Left(x)  => Future.successful(Left(x))
-        }
-        .futureValue
-      result.right.value.result shouldEqual true
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      val future = for {
+        _         ← driver.createDatabase("removeDB")
+        resFuture ← driver.removeDatabase("removeDB")
+      } yield resFuture
+
+      val result = future.futureValue
+      result.result shouldEqual true
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "create collection" in {
-      val result = driver
-        .createCollection("testCollection")
-        .flatMap {
-          case Right(_) => driver.dropCollection("testCollection")
-        }
-        .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      val future = for {
+        _         ← driver.createCollection("testCollection")
+        resFuture ← driver.dropCollection("testCollection")
+      } yield resFuture
+
+      val result = future.futureValue
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "create collection with options" in {
-      val result = driver
-        .createCollection("testCollectionWithOptions", waitForSync = Some(true))
-        .flatMap {
-          case Right(_) => driver.dropCollection("testCollectionWithOptions")
-        }
-        .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      val future = for {
+        _         ← driver.createCollection("testCollectionWithOptions", waitForSync = Some(true))
+        resFuture ← driver.dropCollection("testCollectionWithOptions")
+      } yield resFuture
+
+      val result = future.futureValue
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "truncate collection" in {
-      val result = driver
-        .createCollection("testTruncate")
-        .flatMap {
-          case Right(_) =>
-            driver.truncateCollection("testTruncate").flatMap {
-              case Right(_) => driver.dropCollection("testTruncate")
-            }
-        }
-        .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      val future = for {
+        _         ← driver.createCollection("testTruncate")
+        _         ← driver.truncateCollection("testTruncate")
+        resFuture ← driver.dropCollection("testTruncate")
+      } yield resFuture
+
+      val result = future.futureValue
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "get collection" in {
       val result = driver
         .createCollection("testGetCollection")
-        .flatMap {
-          case Right(_) =>
-            driver.getCollection("testGetCollection").flatMap {
-              case Right(_) => driver.dropCollection("testGetCollection")
-            }
+        .flatMap { _ ⇒
+          driver.getCollection("testGetCollection").flatMap { _ =>
+            driver.dropCollection("testGetCollection")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "get collection properties" in {
       val result = driver
         .createCollection("testGetCollectionProperties")
-        .flatMap {
-          case Right(_) =>
-            driver.getCollectionProperties("testGetCollectionProperties").flatMap {
-              case Right(_) => driver.dropCollection("testGetCollectionProperties")
-            }
+        .flatMap { _ ⇒
+          driver.getCollectionProperties("testGetCollectionProperties").flatMap { _ =>
+            driver.dropCollection("testGetCollectionProperties")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "get collection count" in {
       val result = driver
         .createCollection("testGetCollectionCount")
-        .flatMap {
-          case Right(_) =>
-            driver.getCollectionCount("testGetCollectionCount").flatMap {
-              case Right(_) => driver.dropCollection("testGetCollectionCount")
-            }
+        .flatMap { _ ⇒
+          driver.getCollectionCount("testGetCollectionCount").flatMap { _ =>
+            driver.dropCollection("testGetCollectionCount")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "get collection figures" in {
       val result = driver
         .createCollection("testGetCollectionFigures")
-        .flatMap {
-          case Right(_) =>
-            driver.getCollectionFigures("testGetCollectionFigures").flatMap {
-              case Right(_) => driver.dropCollection("testGetCollectionFigures")
-            }
+        .flatMap { _ ⇒
+          driver.getCollectionFigures("testGetCollectionFigures").flatMap { _ =>
+            driver.dropCollection("testGetCollectionFigures")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "get collection revision" in {
       val result = driver
         .createCollection("testGetCollectionRevision")
-        .flatMap {
-          case Right(_) =>
-            driver.getCollectionRevision("testGetCollectionRevision").flatMap {
-              case Right(_) => driver.dropCollection("testGetCollectionRevision")
-            }
+        .flatMap { _ ⇒
+          driver.getCollectionRevision("testGetCollectionRevision").flatMap { _ =>
+            driver.dropCollection("testGetCollectionRevision")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
     "get collection checksum" in {
       val result = driver
         .createCollection("testGetCollectionChecksum")
-        .flatMap {
-          case Right(_) =>
-            driver.getCollectionChecksum("testGetCollectionChecksum").flatMap {
-              case Right(_) => driver.dropCollection("testGetCollectionChecksum")
-            }
+        .flatMap { _ ⇒
+          driver.getCollectionChecksum("testGetCollectionChecksum").flatMap { _ =>
+            driver.dropCollection("testGetCollectionChecksum")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
     "get collections" in {
       val result = driver.getCollections.futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
     "load / unload collection" in {
       val result = driver
         .createCollection("testCollectionLoadUnload")
-        .flatMap {
-          case Right(_) =>
-            driver.unloadCollection("testCollectionLoadUnload").flatMap {
-              case Right(_) =>
-                driver.loadCollection("testCollectionLoadUnload").flatMap {
-                  case Right(_) => driver.dropCollection("testCollectionLoadUnload")
-                }
+        .flatMap { _ ⇒
+          driver.unloadCollection("testCollectionLoadUnload").flatMap { _ ⇒
+            driver.loadCollection("testCollectionLoadUnload").flatMap { _ =>
+              driver.dropCollection("testCollectionLoadUnload")
             }
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
     "change collection properties" in {
       val result = driver
         .createCollection("testChangeCollectionProperties")
-        .flatMap {
-          case Right(_) =>
-            driver.changeCollectionProperties("testChangeCollectionProperties", Some(true)).flatMap {
-              case Right(_) => driver.dropCollection("testChangeCollectionProperties")
-            }
+        .flatMap { _ ⇒
+          driver.changeCollectionProperties("testChangeCollectionProperties", Some(true)).flatMap { _ =>
+            driver.dropCollection("testChangeCollectionProperties")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
     "rename collection properties" in {
       val result = driver
         .createCollection("testRenameCollection")
-        .flatMap {
-          case Right(_) =>
-            driver.renameCollection("testRenameCollection", "newCollectionName").flatMap {
-              case Right(_) => driver.dropCollection("newCollectionName")
-            }
+        .flatMap { _ ⇒
+          driver.renameCollection("testRenameCollection", "newCollectionName").flatMap { _ =>
+            driver.dropCollection("newCollectionName")
+          }
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
     "rotate collection journal" in {
       val result = driver
         .createCollection("testCollectionRotate")
-        .flatMap {
-          case Right(_) =>
-            driver
-              .rotateCollectionJournal("testCollectionRotate")
-              .flatMap(_ ⇒ driver.dropCollection("testCollectionRotate"))
+        .flatMap { _ ⇒
+          driver.rotateCollectionJournal("testCollectionRotate").onComplete {
+            case _ ⇒ ()
+          }
+          driver.dropCollection("testCollectionRotate")
         }
         .futureValue
-      result.right.value.error shouldEqual false
-      result.right.value.code shouldEqual 200
+      result.error shouldEqual false
+      result.code shouldEqual 200
     }
 
   }

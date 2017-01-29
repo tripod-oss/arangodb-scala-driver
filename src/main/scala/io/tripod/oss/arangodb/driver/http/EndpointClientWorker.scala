@@ -14,8 +14,9 @@ import akka.stream.{ActorMaterializer, ActorMaterializerSettings, OverflowStrate
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
-import io.tripod.oss.arangodb.driver.ApiError
+import io.tripod.oss.arangodb.driver.{ApiError, ApiException}
 import io.tripod.oss.arangodb.driver.http.EndpointClientWorker.{Authenticated, Enqueue}
 
 import scala.concurrent.duration._
@@ -31,7 +32,7 @@ case class ApiCall[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContex
                                                       request: Option[Q],
                                                       encoder: Option[Encoder[Q]],
                                                       decoder: Decoder[R],
-                                                      responsePromise: Promise[Either[ApiError, R]])
+                                                      responsePromise: Promise[R])
 
 object EndpointClientWorker {
   def props(endPointRoot: String, driverConfig: Config, userName: String, password: String): Props =
@@ -73,11 +74,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     case e: ApiCall[_, _] if jwtToken.isEmpty ⇒
       stash()
       authenticate.andThen {
-        case Success(authResponse) ⇒
-          authResponse.fold({ error =>
-            logger.error(s"Authentication failed: $error")
-            e.responsePromise.complete(Success(Left(error)))
-          }, resp ⇒ self ! Authenticated(resp.jwt))
+        case Success(authResponse) ⇒ self ! Authenticated(authResponse.jwt)
         case Failure(t) ⇒
           logger.error(s"Authentication request failed: ${t.getMessage}")
           logger.debug("cause", t)
@@ -104,7 +101,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
       apiCall.responsePromise.completeWith(toApiResponse(response, apiCall.decoder))
   }
 
-  private def authenticate(implicit system: ActorSystem): Future[Either[ApiError, AuthResponse]] = {
+  private def authenticate(): Future[AuthResponse] = {
     import io.circe.generic.semiauto._
     for {
       entity   ← Marshal(AuthRequest(userName, password)).to[RequestEntity]
@@ -128,7 +125,42 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     requestFuture.map(httpRequest ⇒ self ! Enqueue(httpRequest, apiCall))
   }
 
-  private def toApiResponse[R <: ApiResponse](httpResponse: HttpResponse, entityDecoder: Decoder[R]) = {
+  private def toApiResponse[R <: ApiResponse](httpResponse: HttpResponse, entityDecoder: Decoder[R]): Future[R] = {
+    implicit val decoder = entityDecoder
+    Unmarshal(httpResponse.entity).to[R].recoverWith {
+      case _ ⇒
+        implicit val apiErrorDecoder = deriveDecoder[ApiError]
+        Unmarshal(httpResponse.entity)
+          .to[ApiError]
+          .recoverWith {
+            case _ ⇒
+              val unAuth = httpResponse.status match {
+                case StatusCodes.Unauthorized ⇒ httpResponse.header[WWWAuthenticate].map(_.value())
+                case _                        ⇒ None
+              }
+              unAuth
+                .map { message ⇒
+                  Future.successful(
+                    new ApiError(error = true,
+                                 code = httpResponse.status.intValue,
+                                 errorNum = httpResponse.status.intValue,
+                                 errorMessage = message))
+                }
+                .getOrElse {
+                  Unmarshaller
+                    .stringUnmarshaller(httpResponse.entity)
+                    .map(
+                      body =>
+                        new ApiError(error = true,
+                                     code = httpResponse.status.intValue,
+                                     errorNum = httpResponse.status.intValue,
+                                     errorMessage = body))
+                }
+          }
+          .map(apiError ⇒
+            throw new ApiException(apiError.error, apiError.code, apiError.errorNum, apiError.errorMessage))
+    }
+    /*
     if (httpResponse.status.isFailure()) {
       val errorMessage: String = httpResponse.status match {
         case StatusCodes.Unauthorized ⇒
@@ -145,7 +177,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
           val errorBody = Await.result(Unmarshal(httpResponse.entity).to[String], 30 seconds).asInstanceOf[String]
           Left(ApiError(httpResponse.status.intValue, f.getMessage, errorBody))
       }
-    }
+    }*/
   }
 
   def buildHttpRequest(method: HttpMethod, uri: String, headers: List[HttpHeader] = List.empty): HttpRequest = {

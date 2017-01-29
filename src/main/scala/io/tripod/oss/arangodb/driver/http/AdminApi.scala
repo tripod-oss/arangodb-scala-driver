@@ -11,7 +11,7 @@ import scala.concurrent.Future
   */
 trait AdminApi { self: ArangoDriver ⇒
   def getServerVersion(withDetails: Boolean = false)(
-      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, ServerVersionResponse]] = {
+      implicit dbContext: Option[DBContext] = None): Future[ServerVersionResponse] = {
 
     implicit val requestEncoder  = deriveEncoder[ServerVersionRequest]
     implicit val responseDecoder = deriveDecoder[ServerVersionResponse]
@@ -19,7 +19,7 @@ trait AdminApi { self: ArangoDriver ⇒
   }
 
   def getTargetVersion(withDetails: Boolean = false)(
-      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, TargetVersionResponse]] = {
+      implicit dbContext: Option[DBContext] = None): Future[TargetVersionResponse] = {
 
     implicit val responseDecoder = deriveDecoder[TargetVersionResponse]
     callApi[TargetVersionResponse](dbContext, HttpMethods.GET, "/_admin/database/target-version")

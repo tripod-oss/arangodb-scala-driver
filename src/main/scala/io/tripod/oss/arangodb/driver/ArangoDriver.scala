@@ -57,8 +57,8 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   def close = system.terminate()
 
   private[driver] def callApi[R <: ApiResponse](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
-      implicit responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
-    val responsePromise = Promise[Either[ApiError, R]]
+      implicit responseDecoder: Decoder[R]): Future[R] = {
+    val responsePromise = Promise[R]
     router ! ApiCall(dbContext, apiMethod, apiUri, List.empty, None, None, responseDecoder, responsePromise)
     responsePromise.future
   }
@@ -67,8 +67,8 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
       dbContext: Option[DBContext],
       apiMethod: HttpMethod,
       apiUri: String,
-      apiHeaders: List[HttpHeader])(implicit responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
-    val responsePromise = Promise[Either[ApiError, R]]
+      apiHeaders: List[HttpHeader])(implicit responseDecoder: Decoder[R]): Future[R] = {
+    val responsePromise = Promise[R]
     router ! ApiCall(dbContext, apiMethod, apiUri, apiHeaders, None, None, responseDecoder, responsePromise)
     responsePromise.future
   }
@@ -77,8 +77,8 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
       dbContext: Option[DBContext],
       apiMethod: HttpMethod,
       apiUri: String,
-      request: Q)(implicit requestEncoder: Encoder[Q], responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
-    val responsePromise = Promise[Either[ApiError, R]]
+      request: Q)(implicit requestEncoder: Encoder[Q], responseDecoder: Decoder[R]): Future[R] = {
+    val responsePromise = Promise[R]
     router ! ApiCall(dbContext,
                      apiMethod,
                      apiUri,
@@ -90,14 +90,13 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     responsePromise.future
   }
 
-  private[driver] def callApi[Q <: ApiRequest, R <: ApiResponse](dbContext: Option[DBContext],
-                                                                 apiMethod: HttpMethod,
-                                                                 apiUri: String,
-                                                                 request: Q,
-                                                                 apiHeaders: List[HttpHeader])(
-      implicit requestEncoder: Encoder[Q],
-      responseDecoder: Decoder[R]): Future[Either[ApiError, R]] = {
-    val responsePromise = Promise[Either[ApiError, R]]
+  private[driver] def callApi[Q <: ApiRequest, R <: ApiResponse](
+      dbContext: Option[DBContext],
+      apiMethod: HttpMethod,
+      apiUri: String,
+      request: Q,
+      apiHeaders: List[HttpHeader])(implicit requestEncoder: Encoder[Q], responseDecoder: Decoder[R]): Future[R] = {
+    val responsePromise = Promise[R]
     router ! ApiCall(dbContext,
                      apiMethod,
                      apiUri,
