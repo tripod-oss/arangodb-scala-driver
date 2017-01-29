@@ -121,9 +121,9 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     val requestFuture = requestEntity match {
       case Some(entityFuture) ⇒
         entityFuture.map(entity ⇒
-          buildHttpRequest(apiCall.apiMethod, apiCall.apiUri, apiCall.apiHeaders).withEntity(entity))
+          buildHttpRequest(apiCall.apiMethod, buildUri(apiCall), apiCall.apiHeaders).withEntity(entity))
       case None ⇒
-        Future.successful(buildHttpRequest(apiCall.apiMethod, apiCall.apiUri, apiCall.apiHeaders))
+        Future.successful(buildHttpRequest(apiCall.apiMethod, buildUri(apiCall), apiCall.apiHeaders))
     }
     requestFuture.map(httpRequest ⇒ self ! Enqueue(httpRequest, apiCall))
   }
@@ -156,8 +156,8 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
       request
   }
 
-  def buildUri(uri: String, dbContext: Option[DBContext]) = dbContext match {
-    case Some(db) ⇒ s"/_db/${db.name}/$uri"
-    case None     ⇒ uri
+  def buildUri(apiCall: ApiCall[_, _]) = apiCall.dbContext match {
+    case Some(db) ⇒ s"/_db/${db.name}/${apiCall.apiUri}".replaceAll("//", "/")
+    case None     ⇒ apiCall.apiUri
   }
 }
