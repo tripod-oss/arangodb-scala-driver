@@ -1,29 +1,20 @@
-package io.tripod.oss.arangodb.driver.examples
+package io.tripod.oss.arangodb.driver
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.typesafe.scalalogging.LazyLogging
 import io.circe.Encoder
-import org.scalatest.{EitherValues, Matchers, WordSpec}
+import io.tripod.oss.arangodb.driver.http._
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.{EitherValues, Matchers, WordSpec}
 
 import scala.concurrent.Future
-import io.tripod.oss.arangodb.driver.http._
-import io.tripod.oss.arangodb.driver.{ArangoDriver, _systemContext}
 
 /**
   * Created by nicolas.jouanin on 23/01/17.
   */
-class ArangoDriverSpec
-    extends WordSpec
-    with Matchers
-    with ScalaFutures
-    with EitherValues
-    with IntegrationPatience
-    with LazyLogging {
-  implicit val system       = ActorSystem("PbfStreamFlowSpec")
-  implicit val materializer = ActorMaterializer()
-  implicit val ec           = system.dispatcher
+class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with EitherValues with IntegrationPatience {
+  implicit val system = ActorSystem("ArangoDriverSpec")
+  implicit val ec     = system.dispatcher
 
   "ArangodbDriver" should {
     val driver = ArangoDriver()
@@ -32,34 +23,29 @@ class ArangoDriverSpec
       result.right.value.server should not be empty
       result.right.value.version should not be empty
       result.right.value.license should not be empty
-      logger.debug(result.right.value.toString)
     }
 
     "get user database list" in {
       val result = driver.userDatabase.futureValue
       result.right.value.error shouldEqual false
       result.right.value.result should not be empty
-      logger.debug(result.right.value.toString)
     }
 
     "get current database" in {
       val result = driver.currentDatabase.futureValue
       result.right.value.error shouldEqual false
-      logger.debug(result.right.value.toString)
     }
 
     "get database list" in {
       val result = driver.databaseList.futureValue
       result.right.value.error shouldEqual false
       result.right.value.result should not be empty
-      logger.debug(result.right.value.toString)
     }
 
     "create database" in {
       implicit val noneExtraEncoder = Encoder.encodeNone
       val result                    = driver.createDatabase("testDB").futureValue
       result.right.value.result shouldEqual true
-      logger.debug(result.right.value.toString)
       driver.removeDatabase("testDB").futureValue
     }
 
@@ -70,7 +56,6 @@ class ArangoDriverSpec
       val result =
         driver.createDatabase("testDBWithExtra", Some(users)).futureValue
       result.right.value.result shouldEqual true
-      logger.debug(result.right.value.toString)
       driver.removeDatabase("testDBWithExtra").futureValue
     }
 
@@ -85,12 +70,9 @@ class ArangoDriverSpec
       result.right.value.result shouldEqual true
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "create collection" in {
-      //implicit val dbContext: Option[DBContext] = None
-
       val result = driver
         .createCollection("testCollection")
         .flatMap {
@@ -99,7 +81,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "create collection with options" in {
@@ -111,7 +92,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "truncate collection" in {
@@ -126,7 +106,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "get collection" in {
@@ -141,7 +120,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "get collection properties" in {
@@ -156,7 +134,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "get collection count" in {
@@ -171,7 +148,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "get collection figures" in {
@@ -186,7 +162,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "get collection revision" in {
@@ -201,7 +176,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
     "get collection checksum" in {
@@ -216,13 +190,11 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
     "get collections" in {
       val result = driver.getCollections.futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
     "load / unload collection" in {
       val result = driver
@@ -239,7 +211,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
     "change collection properties" in {
       val result = driver
@@ -253,7 +224,6 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
     "rename collection properties" in {
       val result = driver
@@ -267,21 +237,19 @@ class ArangoDriverSpec
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
     "rotate collection journal" in {
       val result = driver
         .createCollection("testCollectionRotate")
         .flatMap {
           case Right(_) =>
-            driver.rotateCollectionJournal("testCollectionRotate").flatMap {
-              case _ => driver.dropCollection("testCollectionRotate")
-            }
+            driver
+              .rotateCollectionJournal("testCollectionRotate")
+              .flatMap(_ ⇒ driver.dropCollection("testCollectionRotate"))
         }
         .futureValue
       result.right.value.error shouldEqual false
       result.right.value.code shouldEqual 200
-      logger.debug(result.right.value.toString)
     }
 
   }

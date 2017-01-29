@@ -97,10 +97,10 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
   def defaultBehaviour: Receive = {
     case apiCall: ApiCall[_, _] ⇒ enqueue(apiCall)
     case Enqueue(request, apiCall) ⇒
-      logger.debug(s"--(request)-> $request")
+      logger.trace(s"--(request)-> $request")
       httpRequestQueue.offer((request, apiCall))
     case (Success(response: HttpResponse), apiCall: ApiCall[_, ApiResponse]) =>
-      logger.debug(s"<-(response)- $response")
+      logger.trace(s"<-(response)- $response")
       apiCall.responsePromise.completeWith(toApiResponse(response, apiCall.decoder))
   }
 

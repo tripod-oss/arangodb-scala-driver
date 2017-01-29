@@ -79,6 +79,8 @@ class ArangoDatabase(dbName: String)(implicit val driver: ArangoDriver) {
 }
 
 object ArangoDatabase {
+  implicit val noneExtraEncoder = Encoder.encodeNone
+
   def apply(dbName: String)(implicit driver: ArangoDriver) = new ArangoDatabase(dbName)
 
   def create[T](dbName: String, options: Option[Seq[UserCreateOptions[T]]] = None)(

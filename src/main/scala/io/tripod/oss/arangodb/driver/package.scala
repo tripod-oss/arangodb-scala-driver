@@ -1,5 +1,6 @@
 package io.tripod.oss.arangodb
 
+import io.circe.Encoder
 import io.tripod.oss.arangodb.driver.http.DBContext
 
 /**
@@ -7,4 +8,6 @@ import io.tripod.oss.arangodb.driver.http.DBContext
   */
 package object driver {
   implicit val _systemContext: Option[DBContext] = None
+  implicit val noneExtraEncoder                  = Encoder.encodeNone
+
 }

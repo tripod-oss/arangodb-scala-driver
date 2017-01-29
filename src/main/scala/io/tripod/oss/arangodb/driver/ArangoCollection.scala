@@ -43,6 +43,24 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
     }
   }
 
+  def info: Future[Either[ApiError, CollectionInfo]] = {
+    driver.getCollectionProperties(name).map {
+      case Right(response) ⇒
+        Right(
+          CollectionInfo(
+            id = response.id,
+            name = response.name,
+            waitForSync = response.waitForSync,
+            journalSize = response.journalSize,
+            isVolatile = response.isVolatile,
+            isSystem = response.isSystem,
+            status = response.status,
+            `type` = response.`type`
+          ))
+      case Left(error) ⇒ Left(error)
+    }
+  }
+
   def rename(newName: String): Future[Either[ApiError, ArangoCollection]] = {
     driver.renameCollection(name, newName).map {
       case Right(response) ⇒ Right(ArangoCollection(db, response.name))
