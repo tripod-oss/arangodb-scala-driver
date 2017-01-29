@@ -40,9 +40,8 @@ trait DatabaseApi extends CodecsImplicits { self: ArangoDriver ⇒
                                                                                  "/_api/database",
                                                                                  request)
   }
-  def removeDatabase(dbName: String)(
-      implicit dbContext: Option[DBContext] = None): Future[Either[ApiError, DeleteDatabaseResponse]] = {
+  def removeDatabase(dbName: String): Future[Either[ApiError, DeleteDatabaseResponse]] = {
     implicit val deleteDatabaseResponseDecoder = deriveDecoder[DeleteDatabaseResponse]
-    callApi[DeleteDatabaseResponse](dbContext, HttpMethods.DELETE, s"/_api/database/$dbName")
+    callApi[DeleteDatabaseResponse](None, HttpMethods.DELETE, s"/_api/database/$dbName")
   }
 }

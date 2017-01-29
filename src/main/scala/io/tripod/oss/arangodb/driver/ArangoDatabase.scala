@@ -9,7 +9,7 @@ import scala.concurrent.Future
 case class DatabaseInfo(name: String, id: String, path: String, isSystem: Boolean)
 
 class ArangoDatabase(dbName: String)(implicit val driver: ArangoDriver) {
-  implicit val dbContext = DBContext(dbName)
+  implicit val dbContext = Some(DBContext(dbName))
   implicit val ec        = driver.ec
 
   def createCollection(name: String,
@@ -57,15 +57,16 @@ class ArangoDatabase(dbName: String)(implicit val driver: ArangoDriver) {
     }
   }
 
-  def getInfo = {
+  def info: Future[Either[ApiError, DatabaseInfo]] = {
     driver.currentDatabase.map {
       case Right(response) ⇒
-        DatabaseInfo(
-          name = response.result.name,
-          id = response.result.id,
-          path = response.result.path,
-          isSystem = response.result.isSystem
-        )
+        Right(
+          DatabaseInfo(
+            name = response.result.name,
+            id = response.result.id,
+            path = response.result.path,
+            isSystem = response.result.isSystem
+          ))
       case Left(apiError) ⇒ Left(apiError)
     }
   }
@@ -88,8 +89,8 @@ object ArangoDatabase {
       extraEncoder: Encoder[T]): Future[Either[ApiError, ArangoDatabase]] = {
     implicit val ec = driver.ec
     driver.createDatabase(dbName, options).map {
-      case Right(response) ⇒ Right(ArangoDatabase(dbName)(driver))
-      case Left(error)     ⇒ Left(error)
+      case Right(_)    ⇒ Right(ArangoDatabase(dbName)(driver))
+      case Left(error) ⇒ Left(error)
     }
   }
 }
