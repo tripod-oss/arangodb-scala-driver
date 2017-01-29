@@ -19,6 +19,8 @@ trait DocumentApiResponse extends ApiResponse {
   val _ref: String
 }
 
+case class DocumentHeaderResponse(_key: String, _id: String, _ref: String) extends DocumentApiResponse
+
 case class ServerVersionResponse(server: String,
                                  version: String,
                                  license: String,

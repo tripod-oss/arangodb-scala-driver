@@ -1,5 +1,6 @@
 package io.tripod.oss.arangodb.driver
 
+import com.typesafe.scalalogging.LazyLogging
 import io.tripod.oss.arangodb.driver.entities.{CollectionStatus, CollectionType}
 
 import scala.concurrent.Future
@@ -13,7 +14,7 @@ case class CollectionInfo(id: String,
                           status: CollectionStatus,
                           `type`: CollectionType)
 
-class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: ArangoDriver) {
+class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: ArangoDriver) extends LazyLogging {
   implicit val dbContext = db.dbContext
   implicit val ec        = driver.ec
 
@@ -58,6 +59,15 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
   def truncate: Future[Unit] = driver.truncateCollection(name).map(_ ⇒ ())
 
   def drop: Future[Unit] = driver.dropCollection(name).map(_ ⇒ ())
+
+  def rotateJournal: Future[Boolean] = {
+    driver.rotateCollectionJournal(name).map(response ⇒ response.result).recover {
+      case e: ApiException ⇒
+        logger.warn(s"Collection [$name] journal rotation failed: ${e.errorMessage}")
+        false
+    }
+  }
+
 }
 
 object ArangoCollection {

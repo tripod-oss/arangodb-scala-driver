@@ -22,4 +22,22 @@ trait DocumentApi extends CodecsImplicits { self: ArangoDriver ⇒
 
     callApi[D](dbContext, HttpMethods.GET, s"/_api/document/$handle", headers)
   }
+
+  def getDocumentHeader[D <: DocumentHeaderResponse](
+      handle: String,
+      ifNoneMatch: Option[String] = None,
+      ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext], responseDecoder: Decoder[D]) = {
+
+    val headers = ifNoneMatch
+      .map(etag ⇒ `If-None-Match`(EntityTag(etag)))
+      .orElse(
+        ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag)))
+      ) match {
+      case Some(httpHeader) ⇒ List(httpHeader)
+      case None             ⇒ List.empty
+    }
+
+    callApi[D](dbContext, HttpMethods.HEAD, s"/_api/document/$handle", headers)
+  }
+
 }
