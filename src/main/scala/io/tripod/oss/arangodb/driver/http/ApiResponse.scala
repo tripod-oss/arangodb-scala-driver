@@ -201,3 +201,11 @@ case class RenameCollectionResponse(id: String,
 
 case class RotateCollectionJournalResponse(result: Boolean, error: Boolean, code: Int)
     extends DatabaseApiResponse[Boolean]
+
+case class ReadDocumentsResponse(result: Seq[String],
+                                 hasMore: Boolean,
+                                 cached: Boolean,
+                                 extra: ReadDocumentsExtra,
+                                 error: Boolean,
+                                 code: Int)
+    extends DatabaseApiResponse[Seq[String]]

@@ -28,3 +28,5 @@ case class CreateCollectionRequest(name: String,
 case class ChangeCollectionPropertiesRequest(waitForSync: Option[Boolean], journalSize: Option[Int]) extends ApiRequest
 
 case class RenameCollectionRequest(name: String) extends ApiRequest
+
+case class ReadDocumentsRequest(`type`: String, collection: String) extends ApiRequest

@@ -38,3 +38,11 @@ case class CollectionInfo(id: String,
                           isSystem: Boolean,
                           status: CollectionStatus,
                           `type`: CollectionType)
+
+case class ReadDocumentsStats(writesExecuted: Int,
+                              writesIngored: Int,
+                              scannedFull: Int,
+                              filtered: Int,
+                              executionTime: Double)
+
+case class ReadDocumentsExtra(stats: ReadDocumentsStats, warnings: Seq[String])
