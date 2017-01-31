@@ -1,7 +1,7 @@
 package io.tripod.oss.arangodb.driver.http
 
 import io.circe.{Decoder, Encoder}
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.generic.semiauto._
 import io.circe.java8.time.TimeInstances
 import io.tripod.oss.arangodb.driver.entities._
 

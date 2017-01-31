@@ -58,12 +58,41 @@ trait DocumentApi extends CodecsImplicits { self: ArangoDriver ⇒
                                                          request)
   }
 
-  def createDocument[D](
-      collectionName: String,
-      data: D,
-      waitForSync: Option[Boolean] = None,
-      returnNew: Option[Boolean] = None,
-      silent: Option[Boolean] = None)(implicit dbContext: Option[DBContext], dataEncoder: Encoder[D]) = {}
+  def createDocument[D](collectionName: String,
+                        data: D,
+                        waitForSync: Option[Boolean] = None,
+                        returnNew: Option[Boolean] = None,
+                        silent: Option[Boolean] = None)(implicit dbContext: Option[DBContext],
+                                                        dataEncoder: Encoder[D]): Future[CreateDocumentResponse] = {
+
+    val params = List(waitForSync.map(w => s"waitForSync=$w").getOrElse(""),
+                      returnNew.map(r => s"returnNew=$r").getOrElse(""),
+                      silent.map(s => s"silent=$s").getOrElse("")).mkString("&") match {
+      case "" => ""
+      case p  => "?" + p
+    }
+
+    silent match {
+      case Some(true) =>
+        callApi[D, SilentCreateDocumentResponse](dbContext,
+                                                 HttpMethods.POST,
+                                                 s"/_api/document/$collectionName$params",
+                                                 data)
+      case _ =>
+        returnNew match {
+          case Some(true) =>
+            callApi[D, CreateDocumentWithNewResponse[D]](dbContext,
+                                                         HttpMethods.POST,
+                                                         s"/_api/document/$collectionName$params",
+                                                         data)
+          case _ =>
+            callApi[D, CreateDocumentSimpleResponse](dbContext,
+                                                     HttpMethods.POST,
+                                                     s"/_api/document/$collectionName$params",
+                                                     data)
+        }
+    }
+  }
 
   private def etagHeader(matchTag: Option[Either[String, String]]): Option[HttpHeader] = {
     matchTag.map {

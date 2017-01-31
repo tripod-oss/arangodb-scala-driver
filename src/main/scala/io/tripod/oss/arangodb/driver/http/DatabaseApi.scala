@@ -2,7 +2,7 @@ package io.tripod.oss.arangodb.driver.http
 
 import akka.http.scaladsl.model.HttpMethods
 import io.circe.Encoder
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.generic.semiauto._
 import io.tripod.oss.arangodb.driver.{ApiError, ArangoDriver}
 
 import scala.concurrent.Future
@@ -25,6 +25,14 @@ trait DatabaseApi extends CodecsImplicits { self: ArangoDriver ⇒
     callApi[DatabaseListResponse](dbContext, HttpMethods.GET, "/_api/database")
   }
 
+  /*
+  def request[R](req: R) = {
+    import io.circe.syntax._
+    implicit lazy val encoder = deriveEncoder[R]
+    req.asJson
+    ???
+  }
+   */
   def createDatabase[T](dbName: String, users: Option[Seq[UserCreateOptions[T]]] = None)(
       implicit optionsEncoder: Encoder[T],
       dbContext: Option[DBContext] = None): Future[CreateDatabaseResponse] = {

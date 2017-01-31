@@ -21,6 +21,16 @@ trait DocumentApiResponse extends ApiResponse {
 
 case class DocumentHeaderResponse(_key: String, _id: String, _ref: String) extends DocumentApiResponse
 
+trait CreateDocumentResponse extends ApiResponse
+
+case class SilentCreateDocumentResponse() extends CreateDocumentResponse
+case class CreateDocumentSimpleResponse(_key: String, _id: String, _ref: String)
+    extends CreateDocumentResponse
+    with DocumentApiResponse
+case class CreateDocumentWithNewResponse[D](_key: String, _id: String, _ref: String, `new`: D)
+    extends CreateDocumentResponse
+    with DocumentApiResponse
+
 case class ServerVersionResponse(server: String,
                                  version: String,
                                  license: String,
