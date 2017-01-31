@@ -1,7 +1,7 @@
 package io.tripod.oss.arangodb.driver.http
 
 import akka.http.scaladsl.model.HttpMethods
-import io.circe.generic.semiauto._
+import io.circe.generic.auto._
 import io.tripod.oss.arangodb.driver.{ApiError, ArangoDriver}
 import io.tripod.oss.arangodb.driver.entities.CollectionType
 
@@ -29,9 +29,6 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
       `type`: Option[CollectionType] = None,
       indexBuckets: Option[Int] = None)(implicit dbContext: Option[DBContext]): Future[CreateCollectionResponse] = {
 
-    implicit val collectionKeyOptionsEncoder     = deriveEncoder[CollectionKeyOptions]
-    implicit val createCollectionRequestEncoder  = deriveEncoder[CreateCollectionRequest]
-    implicit val createCollectionResponseDecoder = deriveDecoder[CreateCollectionResponse]
     val request = CreateCollectionRequest(name,
                                           journalSize,
                                           replicationFactor,
@@ -52,69 +49,55 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
 
   def dropCollection(name: String, isSystem: Boolean = false)(
       implicit dbContext: Option[DBContext]): Future[DropCollectionResponse] = {
-    implicit val dropCollectionResponseDecoder = deriveDecoder[DropCollectionResponse]
     callApi[DropCollectionResponse](dbContext, HttpMethods.DELETE, s"/_api/collection/$name?isSystem=$isSystem")
   }
 
   def truncateCollection(name: String)(implicit dbContext: Option[DBContext]): Future[TruncateCollectionResponse] = {
-    implicit val dropCollectionResponseDecoder = deriveDecoder[TruncateCollectionResponse]
     callApi[TruncateCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/truncate")
   }
 
   def getCollection(name: String)(implicit dbContext: Option[DBContext]): Future[GetCollectionResponse] = {
-    implicit val getCollectionResponseDecoder = deriveDecoder[GetCollectionResponse]
     callApi[GetCollectionResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name")
   }
 
   def getCollectionProperties(name: String)(
       implicit dbContext: Option[DBContext]): Future[GetCollectionPropertiesResponse] = {
-    implicit val getCollectionPropertiesResponseDecoder = deriveDecoder[GetCollectionPropertiesResponse]
     callApi[GetCollectionPropertiesResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/properties")
   }
 
   def getCollectionCount(name: String)(implicit dbContext: Option[DBContext]): Future[GetCollectionCountResponse] = {
-    implicit val responseDecoder = deriveDecoder[GetCollectionCountResponse]
     callApi[GetCollectionCountResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/count")
   }
 
   def getCollectionFigures(name: String)(implicit dbContext: Option[DBContext]): Future[GetCollectionFiguresResponse] = {
-    implicit val collectionFiguresEncoder = deriveDecoder[CollectionFigure]
-    implicit val responseDecoder          = deriveDecoder[GetCollectionFiguresResponse]
     callApi[GetCollectionFiguresResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/figures")
   }
 
   def getCollectionRevision(name: String)(
       implicit dbContext: Option[DBContext]): Future[GetCollectionRevisionResponse] = {
-    implicit val responseDecoder = deriveDecoder[GetCollectionRevisionResponse]
     callApi[GetCollectionRevisionResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/revision")
   }
 
   def getCollectionChecksum(name: String)(
       implicit dbContext: Option[DBContext]): Future[GetCollectionChecksumResponse] = {
-    implicit val responseDecoder = deriveDecoder[GetCollectionChecksumResponse]
     callApi[GetCollectionChecksumResponse](dbContext, HttpMethods.GET, s"/_api/collection/$name/checksum")
   }
 
   def getCollections(implicit dbContext: Option[DBContext]): Future[GetCollectionsResponse] = {
-    implicit val getCollectionResponseDecoder = deriveDecoder[GetCollectionsResponse]
     callApi[GetCollectionsResponse](dbContext, HttpMethods.GET, "/_api/collection")
   }
 
   def loadCollection(name: String, count: Boolean = true)(
       implicit dbContext: Option[DBContext]): Future[LoadCollectionResponse] = {
-    implicit val responseDecoder = deriveDecoder[LoadCollectionResponse]
     callApi[LoadCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/load")
   }
 
   def unloadCollection(name: String)(implicit dbContext: Option[DBContext]): Future[UnloadCollectionResponse] = {
-    implicit val responseDecoder = deriveDecoder[UnloadCollectionResponse]
     callApi[UnloadCollectionResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/unload")
   }
 
   def changeCollectionProperties(name: String, waitForSync: Option[Boolean] = None, journalSize: Option[Int] = None)(
       implicit dbContext: Option[DBContext]): Future[ChangeCollectionPropertiesResponse] = {
-    implicit val responseDecoder = deriveDecoder[ChangeCollectionPropertiesResponse]
-    implicit val requestEncoder  = deriveEncoder[ChangeCollectionPropertiesRequest]
 
     val request = ChangeCollectionPropertiesRequest(waitForSync, journalSize)
     callApi[ChangeCollectionPropertiesRequest, ChangeCollectionPropertiesResponse](
@@ -126,8 +109,6 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
 
   def renameCollection(oldName: String, newName: String)(
       implicit dbContext: Option[DBContext]): Future[RenameCollectionResponse] = {
-    implicit val requestEncoder  = deriveEncoder[RenameCollectionRequest]
-    implicit val responseDecoder = deriveDecoder[RenameCollectionResponse]
     callApi[RenameCollectionRequest, RenameCollectionResponse](dbContext,
                                                                HttpMethods.PUT,
                                                                s"/_api/collection/$oldName/rename",
@@ -136,7 +117,6 @@ trait CollectionApi extends CodecsImplicits { self: ArangoDriver ⇒
 
   def rotateCollectionJournal(name: String)(
       implicit dbContext: Option[DBContext]): Future[RotateCollectionJournalResponse] = {
-    implicit val responseDecoder = deriveDecoder[RotateCollectionJournalResponse]
     callApi[RotateCollectionJournalResponse](dbContext, HttpMethods.PUT, s"/_api/collection/$name/rotate")
   }
 }

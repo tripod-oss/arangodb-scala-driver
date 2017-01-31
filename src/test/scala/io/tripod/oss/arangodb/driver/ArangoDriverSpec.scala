@@ -43,8 +43,7 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
     }
 
     "create database" in {
-      implicit val noneExtraEncoder = Encoder.encodeNone
-      val result                    = driver.createDatabase("testDB").futureValue
+      val result = driver.createDatabase("testDB").futureValue
       result.result shouldEqual true
       driver.removeDatabase("testDB").futureValue
     }

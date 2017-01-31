@@ -7,10 +7,11 @@ import io.tripod.oss.arangodb.driver.ArangoDriver
 import io.tripod.oss.arangodb.driver.entities.ReadDocumentsRequestType.{Id, Key, Path}
 import io.tripod.oss.arangodb.driver.entities.ReadDocumentsRequestType
 import io.circe.generic.semiauto._
+import io.circe.generic.auto._
 
 import scala.concurrent.Future
 
-trait DocumentApi extends CodecsImplicits { self: ArangoDriver ⇒
+trait DocumentApi { self: ArangoDriver ⇒
 
   /**
     *
@@ -58,12 +59,13 @@ trait DocumentApi extends CodecsImplicits { self: ArangoDriver ⇒
                                                          request)
   }
 
-  def createDocument[D](collectionName: String,
-                        data: D,
-                        waitForSync: Option[Boolean] = None,
-                        returnNew: Option[Boolean] = None,
-                        silent: Option[Boolean] = None)(implicit dbContext: Option[DBContext],
-                                                        dataEncoder: Encoder[D]): Future[CreateDocumentResponse] = {
+  def createDocument[D: Decoder](collectionName: String,
+                                 data: D,
+                                 waitForSync: Option[Boolean] = None,
+                                 returnNew: Option[Boolean] = None,
+                                 silent: Option[Boolean] = None)(
+      implicit dbContext: Option[DBContext],
+      dataEncoder: Encoder[D]): Future[CreateDocumentResponse] = {
 
     val params = List(waitForSync.map(w => s"waitForSync=$w").getOrElse(""),
                       returnNew.map(r => s"returnNew=$r").getOrElse(""),

@@ -1,6 +1,7 @@
 package io.tripod.oss.arangodb.driver
 
 import io.circe.Encoder
+import io.circe.generic.auto._
 import io.tripod.oss.arangodb.driver.entities.{CollectionStatus, CollectionType}
 import io.tripod.oss.arangodb.driver.http._
 
@@ -63,13 +64,10 @@ class ArangoDatabase(dbName: String)(implicit val driver: ArangoDriver) {
 }
 
 object ArangoDatabase {
-  implicit val noneExtraEncoder = Encoder.encodeNone
-
   def apply(dbName: String)(implicit driver: ArangoDriver) = new ArangoDatabase(dbName)
 
-  def create[T](dbName: String, options: Option[Seq[UserCreateOptions[T]]] = None)(
-      implicit driver: ArangoDriver,
-      extraEncoder: Encoder[T]): Future[ArangoDatabase] = {
+  def create[T: Encoder](dbName: String, options: Option[Seq[UserCreateOptions[T]]] = None)(
+      implicit driver: ArangoDriver): Future[ArangoDatabase] = {
     implicit val ec = driver.ec
     driver.createDatabase(dbName, options).map(_ ⇒ ArangoDatabase(dbName)(driver))
   }

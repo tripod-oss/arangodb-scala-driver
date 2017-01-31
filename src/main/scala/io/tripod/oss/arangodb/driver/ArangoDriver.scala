@@ -59,6 +59,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
   private[driver] def callApi[R <: ApiResponse](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
       implicit responseDecoder: Decoder[R]): Future[R] = {
     val responsePromise = Promise[R]
+
     router ! ApiCall(dbContext, apiMethod, apiUri, List.empty, None, None, responseDecoder, responsePromise)
     responsePromise.future
   }
@@ -73,7 +74,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     responsePromise.future
   }
 
-  private[driver] def callApi[Q <: ApiRequest, R <: ApiResponse](
+  private[driver] def callApi[Q, R <: ApiResponse](
       dbContext: Option[DBContext],
       apiMethod: HttpMethod,
       apiUri: String,
@@ -90,7 +91,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     responsePromise.future
   }
 
-  private[driver] def callApi[Q <: ApiRequest, R <: ApiResponse](
+  private[driver] def callApi[Q, R <: ApiResponse](
       dbContext: Option[DBContext],
       apiMethod: HttpMethod,
       apiUri: String,
