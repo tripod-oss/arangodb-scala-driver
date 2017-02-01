@@ -16,18 +16,18 @@ trait DatabaseApiResponse[T] extends ApiResponse with ErrorResult {
 trait DocumentApiResponse extends ApiResponse {
   val _key: String
   val _id: String
-  val _ref: String
+  val _rev: String
 }
 
-case class DocumentHeaderResponse(_key: String, _id: String, _ref: String) extends DocumentApiResponse
+case class DocumentHeaderResponse(_key: String, _id: String, _rev: String) extends DocumentApiResponse
 
 trait CreateDocumentResponse extends ApiResponse
 
 case class SilentCreateDocumentResponse() extends CreateDocumentResponse
-case class CreateDocumentSimpleResponse(_key: String, _id: String, _ref: String)
+case class CreateDocumentSimpleResponse(_key: String, _id: String, _rev: String)
     extends CreateDocumentResponse
     with DocumentApiResponse
-case class CreateDocumentWithNewResponse[D](_key: String, _id: String, _ref: String, `new`: D)
+case class CreateDocumentWithNewResponse[D](_key: String, _id: String, _rev: String, `new`: D)
     extends CreateDocumentResponse
     with DocumentApiResponse
 

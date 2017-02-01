@@ -238,5 +238,49 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
       result.code shouldEqual 200
     }
 
+    "create document" in {
+      import io.circe.generic.auto._
+      case class Document(hello: String)
+      val createDocument = for {
+        _        <- driver.createCollection("testCollectionDocument")
+        document <- driver.createDocument("testCollectionDocument", Document("world"))
+        _        <- driver.dropCollection("testCollectionDocument")
+      } yield document
+
+      val result = createDocument.futureValue
+      result shouldBe a[CreateDocumentSimpleResponse]
+      val docResp = result.asInstanceOf[CreateDocumentSimpleResponse]
+      docResp._key should not be empty
+      docResp._id should not be empty
+      docResp._rev should not be empty
+    }
+
+    "create silent document" in {
+      import io.circe.generic.auto._
+      case class Document(hello: String)
+      val createDocument = for {
+        _        <- driver.createCollection("testCollectionDocument")
+        document <- driver.createDocument("testCollectionDocument", Document("world"), silent = Some(true))
+        _        <- driver.dropCollection("testCollectionDocument")
+      } yield document
+
+      val result = createDocument.futureValue
+      result shouldBe a[SilentCreateDocumentResponse]
+    }
+
+    "create document with returnNew" in {
+      import io.circe.generic.auto._
+      case class Document(hello: String)
+      val createDocument = for {
+        _        <- driver.createCollection("testCollectionDocument")
+        document <- driver.createDocument("testCollectionDocument", Document("world"), returnNew = Some(true))
+        _        <- driver.dropCollection("testCollectionDocument")
+      } yield document
+
+      val result = createDocument.futureValue
+      result shouldBe a[CreateDocumentWithNewResponse[Document]]
+      val docResp = result.asInstanceOf[CreateDocumentWithNewResponse[Document]]
+      docResp.`new` shouldEqual Document("world")
+    }
   }
 }

@@ -5,6 +5,7 @@ import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 class ArangoDatabaseSpec extends WordSpec with Matchers with ScalaFutures with EitherValues with IntegrationPatience {
   implicit val system = ActorSystem("ArangoDatabaseSpec")
@@ -13,9 +14,12 @@ class ArangoDatabaseSpec extends WordSpec with Matchers with ScalaFutures with E
   "ArangoDatabase" should {
     "create/drop database" in {
       implicit val driver = ArangoDriver()
-      val result          = ArangoDatabase.create("testDb").futureValue
-      result shouldBe a[ArangoDatabase]
-      result.drop.futureValue shouldEqual ()
+        val result          = ArangoDatabase.create("testDb").onComplete {
+          case Success(result) =>         result shouldBe a[ArangoDatabase]
+            result.drop.futureValue shouldEqual ()
+          case Failure(t) => fail(t)
+
+        }
     }
 
     "get info" in {
@@ -26,7 +30,7 @@ class ArangoDatabaseSpec extends WordSpec with Matchers with ScalaFutures with E
         _        ← database.drop
       } yield info
 
-      future.futureValue shouldBe a[DatabaseInfo]
+      val result = future.futureValue shouldBe a[DatabaseInfo]
     }
 
     "create collection" in {

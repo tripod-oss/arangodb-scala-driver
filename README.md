@@ -32,6 +32,11 @@
   * `PUT` `/_api/collection/{collection-name}/rotate`
   * `PUT` `/_api/collection/{collection-name}/truncate`
   * `PUT` `/_api/collection/{collection-name}/unload`
+* Document:
+  * `GET` `/_api/document/{document-handle}`
+  * `HEAD` `/_api/document/{document-handle}`
+  * `PUT` `/_api/simple/all-keys`
+  * `POST` `/_api/document/{collection}`
 
 # Usage
 

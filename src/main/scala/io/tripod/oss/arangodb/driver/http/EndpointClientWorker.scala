@@ -133,29 +133,27 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
         Unmarshal(httpResponse.entity)
           .to[ApiError]
           .recoverWith {
-            case _ ⇒
+            case t: Throwable ⇒
               val unAuth = httpResponse.status match {
                 case StatusCodes.Unauthorized ⇒ httpResponse.header[WWWAuthenticate].map(_.value())
                 case _                        ⇒ None
               }
-              unAuth
-                .map { message ⇒
-                  Future.successful(
-                    new ApiError(error = true,
-                                 code = httpResponse.status.intValue,
-                                 errorNum = httpResponse.status.intValue,
-                                 errorMessage = message))
-                }
-                .getOrElse {
-                  Unmarshaller
-                    .stringUnmarshaller(httpResponse.entity)
-                    .map(
-                      body =>
-                        new ApiError(error = true,
-                                     code = httpResponse.status.intValue,
-                                     errorNum = httpResponse.status.intValue,
-                                     errorMessage = body))
-                }
+              unAuth.map { message ⇒
+                Future.successful(
+                  new ApiError(error = true,
+                               code = httpResponse.status.intValue,
+                               errorNum = httpResponse.status.intValue,
+                               errorMessage = message))
+              }.getOrElse {
+                Unmarshaller
+                  .stringUnmarshaller(httpResponse.entity)
+                  .map(
+                    body =>
+                      new ApiError(error = true,
+                                   code = httpResponse.status.intValue,
+                                   errorNum = httpResponse.status.intValue,
+                                   errorMessage = s"${t.getLocalizedMessage}: $body"))
+              }
           }
           .map(apiError ⇒
             throw new ApiException(apiError.error, apiError.code, apiError.errorNum, apiError.errorMessage))

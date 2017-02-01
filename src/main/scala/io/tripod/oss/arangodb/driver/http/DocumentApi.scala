@@ -3,6 +3,7 @@ package io.tripod.oss.arangodb.driver.http
 import akka.http.scaladsl.model.{HttpHeader, HttpMethods}
 import io.circe.{Decoder, Encoder}
 import akka.http.scaladsl.model.headers.{EntityTag, `If-Match`, `If-None-Match`}
+import com.typesafe.scalalogging.LazyLogging
 import io.tripod.oss.arangodb.driver.ArangoDriver
 import io.tripod.oss.arangodb.driver.entities.ReadDocumentsRequestType.{Id, Key, Path}
 import io.tripod.oss.arangodb.driver.entities.ReadDocumentsRequestType
@@ -11,7 +12,7 @@ import io.circe.generic.auto._
 
 import scala.concurrent.Future
 
-trait DocumentApi { self: ArangoDriver ⇒
+trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
 
   /**
     *
@@ -53,10 +54,7 @@ trait DocumentApi { self: ArangoDriver ⇒
     })
     implicit val responseDecoder = deriveDecoder[ReadDocumentsResponse]
     implicit val requestEncoder  = deriveEncoder[ReadDocumentsRequest]
-    callApi[ReadDocumentsRequest, ReadDocumentsResponse](dbContext,
-                                                         HttpMethods.HEAD,
-                                                         s"/_api/simple/all-keys",
-                                                         request)
+    callApi[ReadDocumentsRequest, ReadDocumentsResponse](dbContext, HttpMethods.PUT, s"/_api/simple/all-keys", request)
   }
 
   def createDocument[D: Decoder](collectionName: String,
@@ -67,12 +65,19 @@ trait DocumentApi { self: ArangoDriver ⇒
       implicit dbContext: Option[DBContext],
       dataEncoder: Encoder[D]): Future[CreateDocumentResponse] = {
 
-    val params = List(waitForSync.map(w => s"waitForSync=$w").getOrElse(""),
-                      returnNew.map(r => s"returnNew=$r").getOrElse(""),
-                      silent.map(s => s"silent=$s").getOrElse("")).mkString("&") match {
+    val paramNames = List("waitForSync", "returnNew", "silent")
+    val params = List(waitForSync, returnNew, silent)
+      .zip(paramNames)
+      .map {
+        case (Some(value), param) => s"$param=$value"
+        case _                    => ""
+      }
+      .filterNot(_.isEmpty)
+      .mkString("&") match {
       case "" => ""
       case p  => "?" + p
     }
+    logger.debug(s"(waitForSync=$waitForSync, returnNew=$returnNew, silent=$silent) => url params='$params'")
 
     silent match {
       case Some(true) =>
