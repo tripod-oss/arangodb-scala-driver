@@ -14,12 +14,15 @@ class ArangoDatabaseSpec extends WordSpec with Matchers with ScalaFutures with E
   "ArangoDatabase" should {
     "create/drop database" in {
       implicit val driver = ArangoDriver()
-        val result          = ArangoDatabase.create("testDb").onComplete {
-          case Success(result) =>         result shouldBe a[ArangoDatabase]
-            result.drop.futureValue shouldEqual ()
-          case Failure(t) => fail(t)
-
-        }
+      val future          = ArangoDatabase.create("testDbCreate")
+      future.onComplete {
+        case Success(result) =>
+          result shouldBe a[ArangoDatabase]
+          result.drop.futureValue shouldEqual ()
+        case Failure(t: ApiException) =>
+          fail(t)
+      }
+      future.futureValue
     }
 
     "get info" in {

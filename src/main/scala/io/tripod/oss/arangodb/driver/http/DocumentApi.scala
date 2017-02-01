@@ -4,10 +4,9 @@ import akka.http.scaladsl.model.{HttpHeader, HttpMethods}
 import io.circe.{Decoder, Encoder}
 import akka.http.scaladsl.model.headers.{EntityTag, `If-Match`, `If-None-Match`}
 import com.typesafe.scalalogging.LazyLogging
-import io.tripod.oss.arangodb.driver.ArangoDriver
+import io.tripod.oss.arangodb.driver.{ArangoDriver, Utils}
 import io.tripod.oss.arangodb.driver.entities.ReadDocumentsRequestType.{Id, Key, Path}
 import io.tripod.oss.arangodb.driver.entities.ReadDocumentsRequestType
-import io.circe.generic.semiauto._
 import io.circe.generic.auto._
 
 import scala.concurrent.Future
@@ -23,9 +22,8 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
     * @tparam D
     * @return
     */
-  def getDocument[D <: DocumentApiResponse](handle: String, matchTag: Option[Either[String, String]] = None)(
-      implicit dbContext: Option[DBContext],
-      responseDecoder: Decoder[D]) = {
+  def getDocument[D <: DocumentApiResponse: Decoder](handle: String, matchTag: Option[Either[String, String]] = None)(
+      implicit dbContext: Option[DBContext]) = {
 
     val headers = etagHeader(matchTag) match {
       case Some(httpHeader) ⇒ List(httpHeader)
@@ -34,9 +32,9 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
     callApi[D](dbContext, HttpMethods.GET, s"/_api/document/$handle", headers)
   }
 
-  def readDocumentHeader[D <: DocumentHeaderResponse](handle: String, matchTag: Option[Either[String, String]])(
-      implicit dbContext: Option[DBContext],
-      responseDecoder: Decoder[D]) = {
+  def readDocumentHeader[D <: DocumentHeaderResponse: Decoder](
+      handle: String,
+      matchTag: Option[Either[String, String]])(implicit dbContext: Option[DBContext]) = {
 
     val headers = etagHeader(matchTag) match {
       case Some(httpHeader) ⇒ List(httpHeader)
@@ -52,53 +50,60 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
       case Key  => "key"
       case Path => "path"
     })
-    implicit val responseDecoder = deriveDecoder[ReadDocumentsResponse]
-    implicit val requestEncoder  = deriveEncoder[ReadDocumentsRequest]
     callApi[ReadDocumentsRequest, ReadDocumentsResponse](dbContext, HttpMethods.PUT, s"/_api/simple/all-keys", request)
   }
 
-  def createDocument[D: Decoder](collectionName: String,
+  def createDocument[D: Encoder](collectionName: String,
                                  data: D,
                                  waitForSync: Option[Boolean] = None,
                                  returnNew: Option[Boolean] = None,
-                                 silent: Option[Boolean] = None)(
-      implicit dbContext: Option[DBContext],
-      dataEncoder: Encoder[D]): Future[CreateDocumentResponse] = {
+                                 silent: Option[Boolean] = None)(implicit dbContext: Option[DBContext],
+                                                                 decoder: Decoder[D]): Future[DocumentResponse] = {
 
-    val paramNames = List("waitForSync", "returnNew", "silent")
-    val params = List(waitForSync, returnNew, silent)
-      .zip(paramNames)
-      .map {
-        case (Some(value), param) => s"$param=$value"
-        case _                    => ""
-      }
-      .filterNot(_.isEmpty)
-      .mkString("&") match {
-      case "" => ""
-      case p  => "?" + p
-    }
+    val params = Utils.zipParams(Seq("waitForSync", "returnNew", "silent"), Seq(waitForSync, returnNew, silent))
     logger.debug(s"(waitForSync=$waitForSync, returnNew=$returnNew, silent=$silent) => url params='$params'")
 
     silent match {
       case Some(true) =>
-        callApi[D, SilentCreateDocumentResponse](dbContext,
-                                                 HttpMethods.POST,
-                                                 s"/_api/document/$collectionName$params",
-                                                 data)
+        callApi[D, SilentDocumentResponse](dbContext, HttpMethods.POST, s"/_api/document/$collectionName$params", data)
       case _ =>
-        returnNew match {
-          case Some(true) =>
-            callApi[D, CreateDocumentWithNewResponse[D]](dbContext,
-                                                         HttpMethods.POST,
-                                                         s"/_api/document/$collectionName$params",
-                                                         data)
-          case _ =>
-            callApi[D, CreateDocumentSimpleResponse](dbContext,
-                                                     HttpMethods.POST,
-                                                     s"/_api/document/$collectionName$params",
-                                                     data)
-        }
+        callApi[D, CreateDocumentResponse[D]](dbContext,
+                                              HttpMethods.POST,
+                                              s"/_api/document/$collectionName$params",
+                                              data)
     }
+  }
+
+  def replaceDocument[D: Encoder](
+      collectionName: String,
+      documentHandle: String,
+      data: D,
+      waitForSync: Option[Boolean] = None,
+      ignoreRevs: Option[Boolean] = None,
+      returnOld: Option[Boolean] = None,
+      returnNew: Option[Boolean] = None,
+      silent: Option[Boolean] = None,
+      ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext], decoder: Decoder[D]) = {
+    val params = Utils.zipParams(Seq("waitForSync", "ignoreRevs", "returnNew", "silent"),
+                                 Seq(waitForSync, ignoreRevs, returnNew, silent))
+    val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
+
+    silent match {
+      case Some(true) =>
+        callApi[D, SilentDocumentResponse](dbContext,
+                                           HttpMethods.PUT,
+                                           s"/_api/document/$collectionName/$documentHandle$params",
+                                           data,
+                                           headers)
+      case _ =>
+        callApi[D, ReplaceDocumentResponse[D]](dbContext,
+                                               HttpMethods.PUT,
+                                               s"/_api/document/$collectionName/$documentHandle$params",
+                                               data,
+                                               headers)
+    }
+
+    //callApi[D, ]
   }
 
   private def etagHeader(matchTag: Option[Either[String, String]]): Option[HttpHeader] = {

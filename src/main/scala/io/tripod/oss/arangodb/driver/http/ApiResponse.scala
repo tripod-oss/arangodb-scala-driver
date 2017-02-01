@@ -13,24 +13,6 @@ trait DatabaseApiResponse[T] extends ApiResponse with ErrorResult {
   def result: T
 }
 
-trait DocumentApiResponse extends ApiResponse {
-  val _key: String
-  val _id: String
-  val _rev: String
-}
-
-case class DocumentHeaderResponse(_key: String, _id: String, _rev: String) extends DocumentApiResponse
-
-trait CreateDocumentResponse extends ApiResponse
-
-case class SilentCreateDocumentResponse() extends CreateDocumentResponse
-case class CreateDocumentSimpleResponse(_key: String, _id: String, _rev: String)
-    extends CreateDocumentResponse
-    with DocumentApiResponse
-case class CreateDocumentWithNewResponse[D](_key: String, _id: String, _rev: String, `new`: D)
-    extends CreateDocumentResponse
-    with DocumentApiResponse
-
 case class ServerVersionResponse(server: String,
                                  version: String,
                                  license: String,
@@ -219,3 +201,27 @@ case class ReadDocumentsResponse(result: Seq[String],
                                  error: Boolean,
                                  code: Int)
     extends DatabaseApiResponse[Seq[String]]
+
+trait DocumentApiResponse extends ApiResponse {
+  val _key: String
+  val _id: String
+  val _rev: String
+}
+
+case class DocumentHeaderResponse(_key: String, _id: String, _rev: String) extends DocumentApiResponse
+
+trait DocumentResponse              extends ApiResponse
+case class SilentDocumentResponse() extends DocumentResponse
+
+case class CreateDocumentResponse[D](_key: String, _id: String, _rev: String, `new`: Option[D])
+    extends DocumentResponse
+    with DocumentApiResponse
+
+case class ReplaceDocumentResponse[D](_key: String,
+                                      _id: String,
+                                      _rev: String,
+                                      _oldRev: String,
+                                      `new`: Option[D],
+                                      old: Option[D])
+    extends DocumentResponse
+    with DocumentApiResponse

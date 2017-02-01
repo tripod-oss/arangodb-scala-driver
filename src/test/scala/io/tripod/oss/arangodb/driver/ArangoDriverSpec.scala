@@ -248,8 +248,8 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
       } yield document
 
       val result = createDocument.futureValue
-      result shouldBe a[CreateDocumentSimpleResponse]
-      val docResp = result.asInstanceOf[CreateDocumentSimpleResponse]
+      result shouldBe a[CreateDocumentResponse[_]]
+      val docResp = result.asInstanceOf[CreateDocumentResponse[_]]
       docResp._key should not be empty
       docResp._id should not be empty
       docResp._rev should not be empty
@@ -265,7 +265,7 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
       } yield document
 
       val result = createDocument.futureValue
-      result shouldBe a[SilentCreateDocumentResponse]
+      result shouldBe a[SilentDocumentResponse]
     }
 
     "create document with returnNew" in {
@@ -278,9 +278,9 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
       } yield document
 
       val result = createDocument.futureValue
-      result shouldBe a[CreateDocumentWithNewResponse[Document]]
-      val docResp = result.asInstanceOf[CreateDocumentWithNewResponse[Document]]
-      docResp.`new` shouldEqual Document("world")
+      result shouldBe a[CreateDocumentResponse[Document]]
+      val docResp = result.asInstanceOf[CreateDocumentResponse[Document]]
+      docResp.`new` shouldEqual Some(Document("world"))
     }
   }
 }

@@ -8,7 +8,12 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 /**
   * Created by nicolas.jouanin on 01/02/17.
   */
-class ArangoCollectionSpec extends WordSpec with Matchers with ScalaFutures with EitherValues with IntegrationPatience {
+class ArangoCollectionSpec
+    extends WordSpec
+    with Matchers
+    with ScalaFutures
+    with EitherValues
+    with IntegrationPatience {
   implicit val system = ActorSystem("ArangoDatabaseSpec")
   implicit val ec     = system.dispatcher
 
@@ -18,7 +23,7 @@ class ArangoCollectionSpec extends WordSpec with Matchers with ScalaFutures with
       val future = for {
         database   <- ArangoDatabase.create("testDb")
         collection ← database.createCollection("testCollection")
-      info <- collection.info
+        info       <- collection.info
         _          ← database.drop
       } yield info
 
