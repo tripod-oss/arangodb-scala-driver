@@ -19,8 +19,7 @@ import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.tripod.oss.arangodb.driver.{ApiError, ApiException}
 import io.tripod.oss.arangodb.driver.http.EndpointClientWorker.{Authenticated, Enqueue}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 case class DBContext(name: String)
@@ -138,44 +137,28 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
                 case StatusCodes.Unauthorized ⇒ httpResponse.header[WWWAuthenticate].map(_.value())
                 case _                        ⇒ None
               }
-              unAuth.map { message ⇒
-                Future.successful(
-                  new ApiError(error = true,
-                               code = httpResponse.status.intValue,
-                               errorNum = httpResponse.status.intValue,
-                               errorMessage = message))
-              }.getOrElse {
-                Unmarshaller
-                  .stringUnmarshaller(httpResponse.entity)
-                  .map(
-                    body =>
-                      new ApiError(error = true,
-                                   code = httpResponse.status.intValue,
-                                   errorNum = httpResponse.status.intValue,
-                                   errorMessage = s"${t.getLocalizedMessage}: $body"))
-              }
+              unAuth
+                .map { message ⇒
+                  Future.successful(
+                    new ApiError(error = true,
+                                 code = httpResponse.status.intValue,
+                                 errorNum = httpResponse.status.intValue,
+                                 errorMessage = message))
+                }
+                .getOrElse {
+                  Unmarshaller
+                    .stringUnmarshaller(httpResponse.entity)
+                    .map(
+                      body =>
+                        new ApiError(error = true,
+                                     code = httpResponse.status.intValue,
+                                     errorNum = httpResponse.status.intValue,
+                                     errorMessage = s"${t.getLocalizedMessage}: $body"))
+                }
           }
           .map(apiError ⇒
             throw new ApiException(apiError.error, apiError.code, apiError.errorNum, apiError.errorMessage))
     }
-    /*
-    if (httpResponse.status.isFailure()) {
-      val errorMessage: String = httpResponse.status match {
-        case StatusCodes.Unauthorized ⇒
-          httpResponse.header[WWWAuthenticate].map(_.value()).getOrElse("")
-        case _ ⇒ "Undefined error"
-      }
-      Unmarshaller
-        .stringUnmarshaller(httpResponse.entity)
-        .map(errorBody => Left(ApiError(httpResponse.status.intValue, errorMessage, errorBody)))
-    } else {
-      implicit val decoder = entityDecoder
-      Unmarshal(httpResponse.entity).to[R].map(result => Right(result)).recover {
-        case f: DecodingFailure ⇒
-          val errorBody = Await.result(Unmarshal(httpResponse.entity).to[String], 30 seconds).asInstanceOf[String]
-          Left(ApiError(httpResponse.status.intValue, f.getMessage, errorBody))
-      }
-    }*/
   }
 
   def buildHttpRequest(method: HttpMethod, uri: String, headers: List[HttpHeader] = List.empty): HttpRequest = {
