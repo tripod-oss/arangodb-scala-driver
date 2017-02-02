@@ -11,8 +11,8 @@ crossScalaVersions := Seq(scalaVersion.value, "2.11.8", "2.12.1")
 libraryDependencies ++= Seq(
   "com.typesafe.akka"          %% "akka-actor"      % "2.4.16",
   "com.typesafe.akka"          %% "akka-slf4j"      % "2.4.16",
-  "com.typesafe.akka"          %% "akka-http-core"  % "10.0.1",
-  "com.typesafe.akka"          %% "akka-http"       % "10.0.2",
+  "com.typesafe.akka"          %% "akka-http-core"  % "10.0.3",
+  "com.typesafe.akka"          %% "akka-http"       % "10.0.3",
   "com.typesafe"               % "config"           % "1.3.1",
   "com.typesafe.scala-logging" %% "scala-logging"   % "3.5.0",
   "ch.qos.logback"             % "logback-classic"  % "1.1.8",
