@@ -18,14 +18,13 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
     * @param handle
     * @param matchTag optional etag matcher. If Left, a If-None-Match header will be added to the request. If Right, a If-Match header will be added
     * @param dbContext
-    * @param responseDecoder
     * @tparam D
     * @return
     */
   def getDocument[D <: DocumentApiResponse: Decoder](handle: String, matchTag: Option[Either[String, String]] = None)(
       implicit dbContext: Option[DBContext]) = {
 
-    val headers = etagHeader(matchTag) match {
+    val headers = Utils.etagHeader(matchTag) match {
       case Some(httpHeader) ⇒ List(httpHeader)
       case None             ⇒ List.empty
     }
@@ -36,7 +35,7 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
       handle: String,
       matchTag: Option[Either[String, String]])(implicit dbContext: Option[DBContext]) = {
 
-    val headers = etagHeader(matchTag) match {
+    val headers = Utils.etagHeader(matchTag) match {
       case Some(httpHeader) ⇒ List(httpHeader)
       case None             ⇒ List.empty
     }
@@ -136,11 +135,63 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
     }
   }
 
-  private def etagHeader(matchTag: Option[Either[String, String]]): Option[HttpHeader] = {
-    matchTag.map {
-      case Left(etag)  => `If-None-Match`(EntityTag(etag))
-      case Right(etag) => `If-Match`(EntityTag(etag))
+  def updateDocument[D: Encoder](collectionName: String,
+                                 documentHandle: String,
+                                 updateDocument: D,
+                                 keepNull: Option[Boolean] = None,
+                                 mergeObjects: Option[Boolean] = None,
+                                 waitForSync: Option[Boolean] = None,
+                                 ignoreRevs: Option[Boolean] = None,
+                                 returnOld: Option[Boolean] = None,
+                                 returnNew: Option[Boolean] = None,
+                                 silent: Option[Boolean] = None,
+                                 ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
+                                                                 decoder: Decoder[D]): Future[DocumentResponse] = {
+    val params = Utils.zipParams(Seq("keepNull", "mergeObjects", "waitForSync", "ignoreRevs", "returnNew", "silent"),
+                                 Seq(keepNull, mergeObjects, waitForSync, ignoreRevs, returnNew, silent))
+    val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
+    silent match {
+      case Some(true) =>
+        callApi[D, SilentDocumentResponse](dbContext,
+                                           HttpMethods.PATCH,
+                                           s"/_api/document/$collectionName/$documentHandle$params",
+                                           updateDocument,
+                                           headers)
+      case _ =>
+        callApi[D, UpdateDocumentResponse[D]](dbContext,
+                                              HttpMethods.PATCH,
+                                              s"/_api/document/$collectionName/$documentHandle$params",
+                                              updateDocument,
+                                              headers)
     }
   }
-
+  def updateDocuments[D: Encoder](collectionName: String,
+                                  updateDocuments: List[D],
+                                  keepNull: Option[Boolean] = None,
+                                  mergeObjects: Option[Boolean] = None,
+                                  waitForSync: Option[Boolean] = None,
+                                  ignoreRevs: Option[Boolean] = None,
+                                  returnOld: Option[Boolean] = None,
+                                  returnNew: Option[Boolean] = None,
+                                  silent: Option[Boolean] = None,
+                                  ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
+                                                                  decoder: Decoder[D]): Future[DocumentResponse] = {
+    val params = Utils.zipParams(Seq("keepNull", "mergeObjects", "waitForSync", "ignoreRevs", "returnNew", "silent"),
+                                 Seq(keepNull, mergeObjects, waitForSync, ignoreRevs, returnNew, silent))
+    val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
+    silent match {
+      case Some(true) =>
+        callApi[List[D], SilentDocumentResponse](dbContext,
+                                                 HttpMethods.PATCH,
+                                                 s"/_api/document/$collectionName$params",
+                                                 updateDocuments,
+                                                 headers)
+      case _ =>
+        callApi[List[D], UpdateDocumentResponse[List[D]]](dbContext,
+                                                          HttpMethods.PATCH,
+                                                          s"/_api/document/$collectionName$params",
+                                                          updateDocuments,
+                                                          headers)
+    }
+  }
 }

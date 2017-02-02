@@ -3,6 +3,7 @@ package io.tripod.oss.arangodb.driver
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import io.circe.Encoder
+import io.tripod.oss.arangodb.driver
 import io.tripod.oss.arangodb.driver.http._
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.{EitherValues, Matchers, WordSpec}
@@ -302,6 +303,32 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
       docResp._id should not be empty
       docResp._rev should not be empty
       docResp._oldRev should not be empty
+    }
+
+    "update document" in {
+      import io.circe.generic.auto._
+      val updateDocument = for {
+        _        <- driver.createCollection("testUpdateDocument")
+        document <- driver.createDocument("testUpdateDocument", Map("hello" → "world"))
+        update ← driver.updateDocument("testUpdateDocument",
+                                       document.asInstanceOf[CreateDocumentResponse[Map[String, String]]]._key,
+                                       Map("john" → "snow"),
+                                       returnNew = Some(true))
+        _ <- driver.dropCollection("testUpdateDocument")
+      } yield update
+
+      val result = updateDocument.futureValue
+      result shouldBe a[UpdateDocumentResponse[_]]
+      val docResp = result.asInstanceOf[UpdateDocumentResponse[_]]
+      docResp._key should not be empty
+      docResp._id should not be empty
+      docResp._rev should not be empty
+      docResp.`new` match {
+        case Some(map: Map[_, _]) ⇒
+          map should contain("hello" → "world")
+          map should contain("john"  → "snow")
+        case _ ⇒ fail()
+      }
     }
   }
 }

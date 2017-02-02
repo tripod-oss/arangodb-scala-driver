@@ -225,3 +225,12 @@ case class ReplaceDocumentResponse[D](_key: String,
                                       old: Option[D])
     extends DocumentResponse
     with DocumentApiResponse
+
+case class UpdateDocumentResponse[D](_key: String,
+                                     _id: String,
+                                     _rev: String,
+                                     _oldRev: String,
+                                     `new`: Option[D],
+                                     old: Option[D])
+    extends DocumentResponse
+    with DocumentApiResponse
