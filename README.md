@@ -37,6 +37,8 @@
   * `HEAD` `/_api/document/{document-handle}`
   * `PUT` `/_api/simple/all-keys`
   * `POST` `/_api/document/{collection}`
+  * `PUT` `/_api/document/{document-handle}`
+  * `PUT` `/_api/document/{collection}` 
 
 # Usage
 

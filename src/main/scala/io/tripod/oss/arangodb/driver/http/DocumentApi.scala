@@ -54,7 +54,7 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
   }
 
   def createDocument[D: Encoder](collectionName: String,
-                                 data: D,
+                                 document: D,
                                  waitForSync: Option[Boolean] = None,
                                  returnNew: Option[Boolean] = None,
                                  silent: Option[Boolean] = None)(implicit dbContext: Option[DBContext],
@@ -65,25 +65,28 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
 
     silent match {
       case Some(true) =>
-        callApi[D, SilentDocumentResponse](dbContext, HttpMethods.POST, s"/_api/document/$collectionName$params", data)
+        callApi[D, SilentDocumentResponse](dbContext,
+                                           HttpMethods.POST,
+                                           s"/_api/document/$collectionName$params",
+                                           document)
       case _ =>
         callApi[D, CreateDocumentResponse[D]](dbContext,
                                               HttpMethods.POST,
                                               s"/_api/document/$collectionName$params",
-                                              data)
+                                              document)
     }
   }
 
-  def replaceDocument[D: Encoder](
-      collectionName: String,
-      documentHandle: String,
-      data: D,
-      waitForSync: Option[Boolean] = None,
-      ignoreRevs: Option[Boolean] = None,
-      returnOld: Option[Boolean] = None,
-      returnNew: Option[Boolean] = None,
-      silent: Option[Boolean] = None,
-      ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext], decoder: Decoder[D]) = {
+  def replaceDocument[D: Encoder](collectionName: String,
+                                  documentHandle: String,
+                                  newDocument: D,
+                                  waitForSync: Option[Boolean] = None,
+                                  ignoreRevs: Option[Boolean] = None,
+                                  returnOld: Option[Boolean] = None,
+                                  returnNew: Option[Boolean] = None,
+                                  silent: Option[Boolean] = None,
+                                  ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
+                                                                  decoder: Decoder[D]): Future[DocumentResponse] = {
     val params = Utils.zipParams(Seq("waitForSync", "ignoreRevs", "returnNew", "silent"),
                                  Seq(waitForSync, ignoreRevs, returnNew, silent))
     val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
@@ -93,17 +96,44 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
         callApi[D, SilentDocumentResponse](dbContext,
                                            HttpMethods.PUT,
                                            s"/_api/document/$collectionName/$documentHandle$params",
-                                           data,
+                                           newDocument,
                                            headers)
       case _ =>
         callApi[D, ReplaceDocumentResponse[D]](dbContext,
                                                HttpMethods.PUT,
                                                s"/_api/document/$collectionName/$documentHandle$params",
-                                               data,
+                                               newDocument,
                                                headers)
     }
+  }
 
-    //callApi[D, ]
+  def replaceDocuments[D: Encoder](collectionName: String,
+                                   newDocuments: List[D],
+                                   waitForSync: Option[Boolean] = None,
+                                   ignoreRevs: Option[Boolean] = None,
+                                   returnOld: Option[Boolean] = None,
+                                   returnNew: Option[Boolean] = None,
+                                   silent: Option[Boolean] = None,
+                                   ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
+                                                                   decoder: Decoder[D]): Future[DocumentResponse] = {
+    val params = Utils.zipParams(Seq("waitForSync", "ignoreRevs", "returnNew", "silent"),
+                                 Seq(waitForSync, ignoreRevs, returnNew, silent))
+    val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
+
+    silent match {
+      case Some(true) =>
+        callApi[List[D], SilentDocumentResponse](dbContext,
+                                                 HttpMethods.PUT,
+                                                 s"/_api/document/$collectionName$params",
+                                                 newDocuments,
+                                                 headers)
+      case _ =>
+        callApi[List[D], ReplaceDocumentResponse[List[D]]](dbContext,
+                                                           HttpMethods.PUT,
+                                                           s"/_api/document/$collectionName$params",
+                                                           newDocuments,
+                                                           headers)
+    }
   }
 
   private def etagHeader(matchTag: Option[Either[String, String]]): Option[HttpHeader] = {
