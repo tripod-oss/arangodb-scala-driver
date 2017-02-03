@@ -330,5 +330,25 @@ class ArangoDriverSpec extends WordSpec with Matchers with ScalaFutures with Eit
         case _ ⇒ fail()
       }
     }
+
+    "delete document" in {
+      import io.circe.generic.auto._
+      case class Document(hello: String)
+      val replaceDocument = for {
+        _        <- driver.createCollection("testDeleteDocument")
+        document <- driver.createDocument("testDeleteDocument", Document("world"))
+        replacement ← driver.deleteDocument("testDeleteDocument",
+                                            document.asInstanceOf[CreateDocumentResponse[Document]]._key)
+        _ <- driver.dropCollection("testDeleteDocument")
+      } yield replacement
+
+      val result = replaceDocument.futureValue
+      result shouldBe a[DeleteDocumentResponse[_]]
+      val docResp = result.asInstanceOf[DeleteDocumentResponse[_]]
+      docResp._key should not be empty
+      docResp._id should not be empty
+      docResp._rev should not be empty
+    }
+
   }
 }
