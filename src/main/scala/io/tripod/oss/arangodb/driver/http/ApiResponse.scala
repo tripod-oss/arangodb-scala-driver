@@ -234,3 +234,7 @@ case class UpdateDocumentResponse[D](_key: String,
                                      old: Option[D])
     extends DocumentResponse
     with DocumentApiResponse
+
+case class DeleteDocumentResponse[D](_key: String, _id: String, _rev: String, old: Option[D])
+    extends DocumentResponse
+    with DocumentApiResponse

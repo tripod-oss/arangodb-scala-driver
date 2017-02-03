@@ -40,7 +40,9 @@
   * `PUT` `/_api/document/{document-handle}`
   * `PUT` `/_api/document/{collection}` 
   * `PATCH` `/_api/document/{document-handle}`
-  * `PATCH` `/_api/document/{collection}` 
+  * `PATCH` `/_api/document/{collection}`
+  * `DELETE` `/_api/document/{collection}`
+  * `DELETE` `/_api/document/{document-handle}`
 
 # Usage
 

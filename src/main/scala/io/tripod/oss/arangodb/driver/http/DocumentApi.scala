@@ -147,8 +147,9 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
                                  silent: Option[Boolean] = None,
                                  ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
                                                                  decoder: Decoder[D]): Future[DocumentResponse] = {
-    val params = Utils.zipParams(Seq("keepNull", "mergeObjects", "waitForSync", "ignoreRevs", "returnNew", "silent"),
-                                 Seq(keepNull, mergeObjects, waitForSync, ignoreRevs, returnNew, silent))
+    val params = Utils.zipParams(
+      Seq("keepNull", "mergeObjects", "waitForSync", "ignoreRevs", "returnOld", "returnNew", "silent"),
+      Seq(keepNull, mergeObjects, waitForSync, ignoreRevs, returnOld, returnNew, silent))
     val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
     silent match {
       case Some(true) =>
@@ -176,8 +177,9 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
                                   silent: Option[Boolean] = None,
                                   ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
                                                                   decoder: Decoder[D]): Future[DocumentResponse] = {
-    val params = Utils.zipParams(Seq("keepNull", "mergeObjects", "waitForSync", "ignoreRevs", "returnNew", "silent"),
-                                 Seq(keepNull, mergeObjects, waitForSync, ignoreRevs, returnNew, silent))
+    val params = Utils.zipParams(
+      Seq("keepNull", "mergeObjects", "waitForSync", "ignoreRevs", "returnOld", "returnNew", "silent"),
+      Seq(keepNull, mergeObjects, waitForSync, ignoreRevs, returnOld, returnNew, silent))
     val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
     silent match {
       case Some(true) =>
@@ -193,5 +195,40 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
                                                           updateDocuments,
                                                           headers)
     }
+  }
+
+  def deleteDocument[D: Encoder](collectionName: String,
+                                 documentHandle: String,
+                                 waitForSync: Option[Boolean] = None,
+                                 returnOld: Option[Boolean] = None,
+                                 silent: Option[Boolean] = None,
+                                 ifMatch: Option[String] = None)(implicit dbContext: Option[DBContext],
+                                                                 decoder: Decoder[D]): Future[DocumentResponse] = {
+    val params  = Utils.zipParams(Seq("waitForSync", "returnNew", "silent"), Seq(waitForSync, returnOld, silent))
+    val headers = ifMatch.map(etag ⇒ `If-Match`(EntityTag(etag))).toList
+    silent match {
+      case Some(true) =>
+        callApi[SilentDocumentResponse](dbContext,
+                                        HttpMethods.DELETE,
+                                        s"/_api/document/$collectionName/$documentHandle$params",
+                                        headers)
+      case _ =>
+        callApi[DeleteDocumentResponse[D]](dbContext,
+                                           HttpMethods.DELETE,
+                                           s"/_api/document/$collectionName/$documentHandle$params",
+                                           headers)
+    }
+  }
+
+  def deleteDocuments[D: Encoder](collectionName: String,
+                                  documents: List[D],
+                                  waitForSync: Option[Boolean] = None,
+                                  returnOld: Option[Boolean] = None,
+                                  ignoreRevs: Option[Boolean] = None)(
+      implicit dbContext: Option[DBContext],
+      decoder: Decoder[D]): Future[DocumentResponse] = {
+    val params =
+      Utils.zipParams(Seq("waitForSync", "returnNew", "ignoreRevs"), Seq(waitForSync, returnOld, ignoreRevs))
+    callApi[DeleteDocumentResponse[List[D]]](dbContext, HttpMethods.DELETE, s"/_api/document/$collectionName$params")
   }
 }
