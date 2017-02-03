@@ -18,6 +18,11 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
   implicit val dbContext = db.dbContext
   implicit val ec        = driver.ec
 
+  /**
+    * Return the number of documents in the collection
+    * @return collection count return from API call
+    * @throws ApiException (future failure) if the API call fails
+    */
   def count: Future[Int] = driver.getCollectionCount(name).map(_.count)
 
   def changeProperty(waitForSync: Option[Boolean] = None, journalSize: Option[Int]): Future[CollectionInfo] = {
@@ -33,6 +38,11 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
     }
   }
 
+  /**
+    * Return informations about the collection
+    * @return collection informations
+    * @throws ApiException (future failure) if the API call fails
+    */
   def info: Future[CollectionInfo] = {
     driver.getCollectionProperties(name).map { response ⇒
       CollectionInfo(
@@ -48,18 +58,46 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
     }
   }
 
+  /**
+    * Rename and return a new ArangoCollection instance
+    * @param newName new name to set for the collection
+    * @return a new ArangoCollection instance pointing to the the collection renamed
+    * @throws ApiException (future failure) if the API call fails
+    */
   def rename(newName: String): Future[ArangoCollection] = {
     driver.renameCollection(name, newName).map(response ⇒ ArangoCollection(db, response.name))
   }
 
+  /**
+    * Load the collection
+    * @return the collection status after call completes
+    * @throws ApiException (future failure) if the API call fails
+    */
   def load: Future[CollectionStatus] = driver.loadCollection(name).map(_.status)
 
+  /**
+    * Unload the collection
+    * @return the collection status after call completes
+    * @throws ApiException (future failure) if the API call fails
+    */
   def unload: Future[CollectionStatus] = driver.unloadCollection(name).map(_.status)
 
+  /**
+    * Truncate collection from its content
+    * @throws ApiException (future failure) if the API call fails
+    */
   def truncate: Future[Unit] = driver.truncateCollection(name).map(_ ⇒ ())
 
+  /**
+    * Drop collection
+    * @throws ApiException (future failure) if the API call fails
+    */
   def drop: Future[Unit] = driver.dropCollection(name).map(_ ⇒ ())
 
+  /**
+    * Rotate collection journal
+    * @return true if the journal was rotated, false otherwise
+    */
   def rotateJournal: Future[Boolean] = {
     driver.rotateCollectionJournal(name).map(response ⇒ response.result).recover {
       case e: ApiException ⇒
