@@ -36,3 +36,18 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser",
   "io.circe" %% "circe-java8"
 ).map(_ % "0.7.0")
+
+// Publish
+bintrayOrganization := Some("tripod")
+publishMavenStyle := true
+publishArtifact in Test := false
+pomExtra in Global := {
+  <developers>
+    <developer>
+      <name>Nicolas Jouanin</name>
+      <email>nico@tripod.travel</email>
+      <organization>Tripod</organization>
+      <organizationUrl></organizationUrl>
+    </developer>
+  </developers>
+}
