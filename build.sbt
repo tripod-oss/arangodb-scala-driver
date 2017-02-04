@@ -49,7 +49,8 @@ publishTo := {
 publishMavenStyle := true
 publishArtifact in Test := false
 pomExtra in Global := {
-  <developers>
+  <url>https://github.com/tripod-oss/arangodb-scala-driver</url>
+    <developers>
     <developer>
       <name>Nicolas Jouanin</name>
       <email>nico@tripod.travel</email>
