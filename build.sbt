@@ -18,11 +18,6 @@ enablePlugins(BuildInfoPlugin)
 buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion)
 buildInfoPackage := "io.tripod.oss.arangodb.driver"
 
-// sbt-git
-enablePlugins(GitVersioning)
-git.useGitDescribe := true
-git.baseVersion := "0.0.0"
-
 libraryDependencies ++= Seq(
   "com.typesafe.akka"          %% "akka-actor"      % "2.4.16",
   "com.typesafe.akka"          %% "akka-slf4j"      % "2.4.16",
