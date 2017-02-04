@@ -5,7 +5,7 @@ import akka.http.javadsl.model.headers.WWWAuthenticate
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.HttpMethods._
-import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials}
+import akka.http.scaladsl.model.headers.{Authorization, GenericHttpCredentials, ProductVersion, `User-Agent`}
 import akka.http.scaladsl.model.{RequestEntity, _}
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
@@ -16,7 +16,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, DecodingFailure, Encoder}
-import io.tripod.oss.arangodb.driver.{ApiError, ApiException}
+import io.tripod.oss.arangodb.driver.{ApiError, ApiException, BuildInfo}
 import io.tripod.oss.arangodb.driver.http.EndpointClientWorker.{Authenticated, Enqueue}
 
 import scala.concurrent.{Future, Promise}
@@ -47,6 +47,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
   import de.heikoseeberger.akkahttpcirce.CirceSupport._
 
   case class AuthRequest(username: String, password: String)
+  val userAgent = `User-Agent`(ProductVersion("arango-scala-driver", BuildInfo.version))
 
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(context.system))
   implicit val ec           = context.dispatcher
@@ -161,10 +162,10 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
 
   def buildHttpRequest(method: HttpMethod, uri: String, headers: List[HttpHeader] = List.empty): HttpRequest = {
     val request = HttpRequest(method, s"$endPointRoot$uri")
-    if (jwtToken.isDefined)
-      request.withHeaders(List(Authorization(GenericHttpCredentials("bearer", jwtToken.get))) ++ headers)
-    else
-      request
+    val requestHeaders = headers ++ List(userAgent) ++ jwtToken
+        .map(token ⇒ Authorization(GenericHttpCredentials("bearer", token)))
+        .toList
+    request.withHeaders(requestHeaders)
   }
 
   def buildUri(apiCall: ApiCall[_, _]) = apiCall.dbContext match {
