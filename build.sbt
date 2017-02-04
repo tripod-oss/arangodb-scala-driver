@@ -43,6 +43,7 @@ libraryDependencies ++= Seq(
 ).map(_ % "0.7.0")
 
 // Publish
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value)
