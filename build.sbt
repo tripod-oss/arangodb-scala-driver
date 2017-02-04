@@ -8,9 +8,15 @@ resolvers += Resolver.bintrayRepo("hseeberger", "maven")
 scalaVersion := "2.12.1"
 crossScalaVersions := Seq(scalaVersion.value, "2.11.8", "2.12.1")
 
+// sbt-buildInfo plugin
 enablePlugins(BuildInfoPlugin)
 buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion)
 buildInfoPackage := "io.tripod.oss.arangodb.driver"
+
+// sbt-git
+enablePlugins(GitVersioning)
+git.useGitDescribe := true
+git.baseVersion := "0.0.0"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"          %% "akka-actor"      % "2.4.16",
