@@ -4,7 +4,12 @@ licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
 startYear := Some(2016)
 resolvers += Resolver.jcenterRepo
 resolvers += Resolver.bintrayRepo("hseeberger", "maven")
-
+scmInfo :=
+  Some(
+    ScmInfo(
+      url("https://github.com/tripod-oss/arangodb-scala-driver"),
+      "scm:git:git@github.com:tripod-oss/arangodb-scala-driver.git"
+    ))
 scalaVersion := "2.12.1"
 crossScalaVersions := Seq(scalaVersion.value, "2.11.8", "2.12.1")
 
@@ -38,7 +43,13 @@ libraryDependencies ++= Seq(
 ).map(_ % "0.7.0")
 
 // Publish
-bintrayOrganization := Some("tripod")
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}
 publishMavenStyle := true
 publishArtifact in Test := false
 pomExtra in Global := {
