@@ -1,7 +1,7 @@
 package io.tripod.oss.arangodb.driver
 
 import akka.actor.ActorSystem
-import io.tripod.oss.arangodb.driver.entities.{CollectionStatus, CollectionType}
+import io.tripod.oss.arangodb.driver.entities.{CollectionInfo, CollectionStatus, CollectionType}
 import org.scalatest.{EitherValues, Matchers, WordSpec}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 

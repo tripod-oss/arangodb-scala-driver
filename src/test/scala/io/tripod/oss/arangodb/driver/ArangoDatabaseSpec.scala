@@ -69,7 +69,7 @@ class ArangoDatabaseSpec extends WordSpec with Matchers with ScalaFutures with E
         _           ← database.drop
       } yield collections
 
-      future.futureValue shouldBe a[Seq[ArangoCollection]]
+      future.futureValue shouldBe a[Seq[_]]
     }
   }
 }

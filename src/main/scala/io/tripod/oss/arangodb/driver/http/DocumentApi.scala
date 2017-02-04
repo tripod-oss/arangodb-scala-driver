@@ -220,15 +220,14 @@ trait DocumentApi extends LazyLogging { self: ArangoDriver ⇒
     }
   }
 
-  def deleteDocuments[D: Encoder](collectionName: String,
-                                  documents: List[D],
-                                  waitForSync: Option[Boolean] = None,
-                                  returnOld: Option[Boolean] = None,
-                                  ignoreRevs: Option[Boolean] = None)(
-      implicit dbContext: Option[DBContext],
-      decoder: Decoder[D]): Future[DocumentResponse] = {
+  def deleteDocuments[D: Encoder, R: Decoder](collectionName: String,
+                                              documents: List[D],
+                                              waitForSync: Option[Boolean] = None,
+                                              returnOld: Option[Boolean] = None,
+                                              ignoreRevs: Option[Boolean] = None)(
+      implicit dbContext: Option[DBContext]): Future[List[DeleteDocumentResponse[R]]] = {
     val params =
       Utils.zipParams(Seq("waitForSync", "returnNew", "ignoreRevs"), Seq(waitForSync, returnOld, ignoreRevs))
-    callApi[DeleteDocumentResponse[List[D]]](dbContext, HttpMethods.DELETE, s"/_api/document/$collectionName$params")
+    callApi[List[DeleteDocumentResponse[R]]](dbContext, HttpMethods.DELETE, s"/_api/document/$collectionName$params")
   }
 }

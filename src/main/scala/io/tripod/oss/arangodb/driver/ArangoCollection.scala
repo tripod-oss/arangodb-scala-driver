@@ -1,20 +1,15 @@
 package io.tripod.oss.arangodb.driver
 
 import com.typesafe.scalalogging.LazyLogging
-import io.tripod.oss.arangodb.driver.entities.{CollectionStatus, CollectionType}
+import io.circe.Decoder
+import io.tripod.oss.arangodb.driver.entities._
+import io.tripod.oss.arangodb.driver.http.DeleteDocumentResponse
 
 import scala.concurrent.Future
 
-case class CollectionInfo(id: String,
-                          name: String,
-                          waitForSync: Boolean,
-                          journalSize: Int,
-                          isVolatile: Boolean,
-                          isSystem: Boolean,
-                          status: CollectionStatus,
-                          `type`: CollectionType)
-
-class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: ArangoDriver) extends LazyLogging {
+class ArangoCollection(db: ArangoDatabase, name: String, defaultWaitForSync: Option[Boolean] = None)(
+    implicit val driver: ArangoDriver)
+    extends LazyLogging {
   implicit val dbContext = db.dbContext
   implicit val ec        = driver.ec
 
@@ -25,7 +20,8 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
     */
   def count: Future[Int] = driver.getCollectionCount(name).map(_.count)
 
-  def changeProperty(waitForSync: Option[Boolean] = None, journalSize: Option[Int]): Future[CollectionInfo] = {
+  def changeProperty(waitForSync: Option[Boolean] = defaultWaitForSync,
+                     journalSize: Option[Int]): Future[CollectionInfo] = {
     driver.changeCollectionProperties(name, waitForSync, journalSize).map { response ⇒
       CollectionInfo(id = response.id,
                      name = response.name,
@@ -104,6 +100,76 @@ class ArangoCollection(db: ArangoDatabase, name: String)(implicit val driver: Ar
         logger.warn(s"Collection [$name] journal rotation failed: ${e.errorMessage}")
         false
     }
+  }
+
+  /**
+    * Delete a document from the collection and returns its info
+    * @param handle document handle key to delete
+    * @tparam D type of the object returned
+    * @return document information about the deleted document
+    */
+  def deleteDocument[D](handle: String): Future[DocumentDeleteInfo[D]] = {
+    deleteDocument[D](handle, defaultWaitForSync, None, None, None).map(_.get)
+  }
+
+  /**
+    * Delete a document from the collection
+    * @param handle document handle key to delete
+    * @param waitForSync waitForSync API parameter
+    * @param returnOld returnOld API parameter
+    * @param silent waitForSync API parameter
+    * @param ifMatch ifMatch API parameter
+    * @tparam D type of the object returned
+    * @return document information about the deleted document or None if silent was set to Some(true)
+    */
+  def deleteDocument[D](handle: String,
+                        waitForSync: Option[Boolean] = defaultWaitForSync,
+                        returnOld: Option[Boolean] = None,
+                        silent: Option[Boolean] = None,
+                        ifMatch: Option[String] = None): Future[Option[DocumentDeleteInfo[D]]] = {
+    silent match {
+      case Some(true) ⇒ driver.deleteDocument(name, handle, waitForSync, returnOld, silent, ifMatch).map(_ ⇒ None)
+      case _ ⇒
+        driver
+          .deleteDocument(name, handle, waitForSync, returnOld, silent, ifMatch)
+          .mapTo[DeleteDocumentResponse[D]]
+          .map(response ⇒
+            Some(DocumentDeleteInfo(id = response._id, key = response._key, rev = response._rev, old = response.old)))
+    }
+  }
+
+  /**
+    * Delete documents given a list of document keys
+    * @param documentKeys List of keys of documents to delete
+    * @return A list of deleted document info
+    */
+  def deleteDocuments[D: Decoder](documentKeys: List[String]): Future[List[DocumentDeleteInfo[D]]] = {
+    driver
+      .deleteDocuments(name, documentKeys, defaultWaitForSync, Some(false))
+      .map(response ⇒
+        response.map(deleted =>
+          DocumentDeleteInfo(id = deleted._id, key = deleted._key, rev = deleted._rev, old = deleted.old)))
+  }
+
+  /**
+    * Delete documents given a list of document selector
+    * @param documentKeys List of selector (key + rev) of documents to delete
+    * @param waitForSync waitForSync API parameter
+    * @param returnOld returnOld API parameter
+    * @param ignoreRevs ignoreRevs API parameter
+    * @tparam D Type of the object returned if returnedOld is set to Some(true)
+    * @return A list of deleted document info
+    */
+  def deleteDocuments[D: Decoder](documentKeys: List[DocumentSelector],
+                                  waitForSync: Option[Boolean] = defaultWaitForSync,
+                                  returnOld: Option[Boolean] = None,
+                                  ignoreRevs: Option[Boolean] = None): Future[List[DocumentDeleteInfo[D]]] = {
+    import io.circe.generic.auto._
+    driver
+      .deleteDocuments(name, documentKeys, waitForSync, returnOld, ignoreRevs)
+      .map(response ⇒
+        response.map(deleted =>
+          DocumentDeleteInfo(id = deleted._id, key = deleted._key, rev = deleted._rev, old = deleted.old)))
   }
 
 }

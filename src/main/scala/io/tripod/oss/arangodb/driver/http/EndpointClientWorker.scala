@@ -24,20 +24,20 @@ import scala.util.{Failure, Success}
 
 case class DBContext(name: String)
 
-case class ApiCall[Q, R <: ApiResponse](dbContext: Option[DBContext],
-                                        apiMethod: HttpMethod,
-                                        apiUri: String,
-                                        apiHeaders: List[HttpHeader] = List.empty,
-                                        request: Option[Q],
-                                        encoder: Option[Encoder[Q]],
-                                        decoder: Decoder[R],
-                                        responsePromise: Promise[R])
+case class ApiCall[Q, R](dbContext: Option[DBContext],
+                         apiMethod: HttpMethod,
+                         apiUri: String,
+                         apiHeaders: List[HttpHeader] = List.empty,
+                         request: Option[Q],
+                         encoder: Option[Encoder[Q]],
+                         decoder: Decoder[R],
+                         responsePromise: Promise[R])
 
 object EndpointClientWorker {
   def props(endPointRoot: String, driverConfig: Config, userName: String, password: String): Props =
     Props(new EndpointClientWorker(endPointRoot, driverConfig, userName, password))
   case class Authenticated(token: String)
-  case class Enqueue[Q, R <: ApiResponse](request: HttpRequest, apiCall: ApiCall[Q, R])
+  case class Enqueue[Q, R](request: HttpRequest, apiCall: ApiCall[Q, R])
 }
 
 class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName: String, password: String)
@@ -95,7 +95,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     case Enqueue(request, apiCall) ⇒
       logger.trace(s"--(request)-> $request")
       httpRequestQueue.offer((request, apiCall))
-    case (Success(response: HttpResponse), apiCall: ApiCall[_, ApiResponse]) =>
+    case (Success(response: HttpResponse), apiCall: ApiCall[_, _]) =>
       logger.trace(s"<-(response)- $response")
       apiCall.responsePromise.completeWith(toApiResponse(response, apiCall.decoder))
   }
@@ -109,7 +109,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     } yield response
   }
 
-  def enqueue[Q, R <: ApiResponse](apiCall: ApiCall[Q, R]) = {
+  def enqueue[Q, R](apiCall: ApiCall[Q, R]) = {
     val requestEntity = apiCall.request.map { req ⇒
       implicit val encoder = apiCall.encoder.get
       Marshal[Q](req).to[RequestEntity]
@@ -124,7 +124,7 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
     requestFuture.map(httpRequest ⇒ self ! Enqueue(httpRequest, apiCall))
   }
 
-  private def toApiResponse[R <: ApiResponse](httpResponse: HttpResponse, entityDecoder: Decoder[R]): Future[R] = {
+  private def toApiResponse[R](httpResponse: HttpResponse, entityDecoder: Decoder[R]): Future[R] = {
     implicit val decoder = entityDecoder
     Unmarshal(httpResponse.entity).to[R].recoverWith {
       case _ ⇒
@@ -137,24 +137,22 @@ class EndpointClientWorker(endPointRoot: String, driverConfig: Config, userName:
                 case StatusCodes.Unauthorized ⇒ httpResponse.header[WWWAuthenticate].map(_.value())
                 case _                        ⇒ None
               }
-              unAuth
-                .map { message ⇒
-                  Future.successful(
-                    new ApiError(error = true,
-                                 code = httpResponse.status.intValue,
-                                 errorNum = httpResponse.status.intValue,
-                                 errorMessage = message))
-                }
-                .getOrElse {
-                  Unmarshaller
-                    .stringUnmarshaller(httpResponse.entity)
-                    .map(
-                      body =>
-                        new ApiError(error = true,
-                                     code = httpResponse.status.intValue,
-                                     errorNum = httpResponse.status.intValue,
-                                     errorMessage = s"${t.getLocalizedMessage}: $body"))
-                }
+              unAuth.map { message ⇒
+                Future.successful(
+                  new ApiError(error = true,
+                               code = httpResponse.status.intValue,
+                               errorNum = httpResponse.status.intValue,
+                               errorMessage = message))
+              }.getOrElse {
+                Unmarshaller
+                  .stringUnmarshaller(httpResponse.entity)
+                  .map(
+                    body =>
+                      new ApiError(error = true,
+                                   code = httpResponse.status.intValue,
+                                   errorNum = httpResponse.status.intValue,
+                                   errorMessage = s"${t.getLocalizedMessage}: $body"))
+              }
           }
           .map(apiError ⇒
             throw new ApiException(apiError.error, apiError.code, apiError.errorNum, apiError.errorMessage))

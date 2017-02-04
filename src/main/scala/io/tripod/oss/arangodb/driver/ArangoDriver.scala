@@ -56,7 +56,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
 
   def close = system.terminate()
 
-  private[driver] def callApi[R <: ApiResponse](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
+  private[driver] def callApi[R](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String)(
       implicit responseDecoder: Decoder[R]): Future[R] = {
     val responsePromise = Promise[R]
 
@@ -64,21 +64,18 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     responsePromise.future
   }
 
-  private[driver] def callApi[R <: ApiResponse](
-      dbContext: Option[DBContext],
-      apiMethod: HttpMethod,
-      apiUri: String,
-      apiHeaders: List[HttpHeader])(implicit responseDecoder: Decoder[R]): Future[R] = {
+  private[driver] def callApi[R](dbContext: Option[DBContext],
+                                 apiMethod: HttpMethod,
+                                 apiUri: String,
+                                 apiHeaders: List[HttpHeader])(implicit responseDecoder: Decoder[R]): Future[R] = {
     val responsePromise = Promise[R]
     router ! ApiCall(dbContext, apiMethod, apiUri, apiHeaders, None, None, responseDecoder, responsePromise)
     responsePromise.future
   }
 
-  private[driver] def callApi[Q, R <: ApiResponse](
-      dbContext: Option[DBContext],
-      apiMethod: HttpMethod,
-      apiUri: String,
-      request: Q)(implicit requestEncoder: Encoder[Q], responseDecoder: Decoder[R]): Future[R] = {
+  private[driver] def callApi[Q, R](dbContext: Option[DBContext], apiMethod: HttpMethod, apiUri: String, request: Q)(
+      implicit requestEncoder: Encoder[Q],
+      responseDecoder: Decoder[R]): Future[R] = {
     val responsePromise = Promise[R]
     router ! ApiCall(dbContext,
                      apiMethod,
@@ -91,7 +88,7 @@ class ArangoDriver(baseConfig: Config = ConfigFactory.load(),
     responsePromise.future
   }
 
-  private[driver] def callApi[Q, R <: ApiResponse](
+  private[driver] def callApi[Q, R](
       dbContext: Option[DBContext],
       apiMethod: HttpMethod,
       apiUri: String,
