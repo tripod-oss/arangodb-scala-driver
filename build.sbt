@@ -48,6 +48,10 @@ publishTo := {
 }
 publishMavenStyle := true
 publishArtifact in Test := false
+pomIncludeRepository := { _ =>
+  false
+}
+
 pomExtra in Global := {
   <url>https://github.com/tripod-oss/arangodb-scala-driver</url>
     <developers>
